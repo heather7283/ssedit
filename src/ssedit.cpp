@@ -142,7 +142,6 @@ int main(int argc, char **argv) {
         LogPrint(ERR, "failed to initialize glfw!");
         return 1;
     }
-
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
@@ -169,12 +168,9 @@ int main(int argc, char **argv) {
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+    ImGuiContext *imgui_context = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr; // disable automatic .ini file saving
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -187,11 +183,14 @@ int main(int argc, char **argv) {
     int img_w, img_h;
     int channels;
     unsigned char *data = stbi_load(argv[1], &img_w, &img_h, &channels, 4);
-    if (!data) return 0;
+    if (data == NULL) {
+        LogPrint(ERR, "failed to load image %s", argv[1]);
+        return 1;
+    }
 
-    GLuint tex;
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
+    GLuint image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img_w, img_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -199,7 +198,7 @@ int main(int argc, char **argv) {
     // Main loop
     bool need_export = false;
 
-    enum Tool active_tool = FREEFORM;
+    Tool active_tool = FREEFORM;
     float thickness = 2.0f;
     ImVec4 color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
 
@@ -224,11 +223,8 @@ int main(int argc, char **argv) {
         //ImGui::SetNextWindowBgAlpha(1.f);
         //ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.45f, 0.55f, 0.60f, 1.00f));
         ImGui::Begin("ssedit", nullptr,
-                     ImGuiWindowFlags_NoTitleBar |
-                     ImGuiWindowFlags_NoResize |
                      ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoScrollbar |
-                     ImGuiWindowFlags_NoCollapse |
+                     ImGuiWindowFlags_NoDecoration |
                      ImGuiWindowFlags_NoSavedSettings);
 
         ImGui::ColorEdit4("Color", (float *)&color);
@@ -280,7 +276,7 @@ int main(int argc, char **argv) {
         ImVec2 draw_pos = canvas_pos + offset;
 
         ImGui::SetCursorScreenPos(draw_pos);
-        ImGui::Image((intptr_t)tex, display_size);
+        ImGui::Image((intptr_t)image_texture, display_size);
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
@@ -353,11 +349,12 @@ int main(int argc, char **argv) {
         glfwSwapBuffers(window);
 
         if (need_export) {
-            ImGuiContext *ctx = ImGui::GetCurrentContext();
             need_export = false;
+
             SaveImage(img_w, img_h, data, shapes);
+
             glfwMakeContextCurrent(window);
-            ImGui::SetCurrentContext(ctx);
+            ImGui::SetCurrentContext(imgui_context);
         }
     }
 
@@ -367,7 +364,7 @@ int main(int argc, char **argv) {
     ImGui::DestroyContext();
 
     // Delete OpenGL texture
-    glDeleteTextures(1, &tex);
+    glDeleteTextures(1, &image_texture);
 
     // Free image memory
     stbi_image_free(data);

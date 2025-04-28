@@ -17,10 +17,23 @@ struct Line {
 };
 std::vector<Line> lines;
 
+struct Circle {
+    ImVec2 center;
+    float radius;
+    ImU32 color;
+    float thickness;
+};
+std::vector<Circle> circles;
+
 struct RenderContext {
     GLuint color_tex;
     GLuint fbo;
     ImGuiContext* imgui_context;
+};
+
+enum Tool {
+    LINE,
+    CIRCLE,
 };
 
 RenderContext create_render_context(int w, int h) {
@@ -111,6 +124,9 @@ void SaveImage(int width, int height, void *data) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     for (const auto& line : lines) {
         draw_list->AddLine(line.p1, line.p2, line.color, line.thickness);
+    }
+    for (const auto& circle : circles) {
+        draw_list->AddCircle(circle.center, circle.radius, circle.color, 0, circle.thickness);
     }
 
     ImGui::End();
@@ -225,6 +241,11 @@ int main(int argc, char **argv) {
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
+        static enum Tool tool = LINE;
+
+        if (ImGui::RadioButton("Line", tool == LINE)) { tool = LINE; }
+        if (ImGui::RadioButton("Circle", tool == CIRCLE)) { tool = CIRCLE; }
+
         if (ImGui::Button("Export to PNG")) {
             need_export = true;
         }
@@ -259,18 +280,46 @@ int main(int argc, char **argv) {
                 drawing = true;
                 start_pos = local_mouse;
             } else if (ImGui::IsMouseReleased(0) && drawing) {
-                ImVec2 end_pos = local_mouse;
-                lines.push_back({start_pos, end_pos, IM_COL32(255, 0, 0, 255), 2.0f});
-                drawing = false;
+                switch (tool) {
+                case LINE: {
+                    ImVec2 end_pos = local_mouse;
+                    lines.push_back({start_pos, end_pos, IM_COL32(255, 0, 0, 255), 2.0f});
+                    drawing = false;
+                    break;
+                }
+                case CIRCLE: {
+                    ImVec2 d = (local_mouse) - (start_pos);
+                    float r = sqrt((d.x * d.x) + (d.y * d.y));
+                    circles.push_back({start_pos, r, IM_COL32(255, 0, 0, 255), 2.0f});
+                    drawing = false;
+                    break;
+                }
+                }
             } else if (drawing) {
-                draw_list->AddLine(draw_pos + start_pos * scale, draw_pos + local_mouse * scale,
-                                   IM_COL32(255, 0, 0, 255), 2.0f * scale);
+                switch (tool) {
+                case LINE: {
+                    draw_list->AddLine(draw_pos + start_pos * scale, draw_pos + local_mouse * scale,
+                                       IM_COL32(255, 0, 0, 255), 2.0f * scale);
+                    break;
+                }
+                case CIRCLE: {
+                    ImVec2 d = (draw_pos + local_mouse * scale) - (draw_pos + start_pos * scale);
+                    float r = sqrt((d.x * d.x) + (d.y * d.y));
+                    draw_list->AddCircle(draw_pos + start_pos * scale, r,
+                                         IM_COL32(255, 0, 0, 255), 0, 2.0f * scale);
+                    break;
+                }
+                }
             }
         }
 
         for (const auto& line : lines) {
             draw_list->AddLine(draw_pos + line.p1 * scale, draw_pos + line.p2 * scale,
                                line.color, line.thickness * scale);
+        }
+        for (const auto& circle : circles) {
+            draw_list->AddCircle(draw_pos + circle.center * scale,
+                                 circle.radius * scale, circle.color, 0, circle.thickness * scale);
         }
 
         ImGui::PopStyleColor();

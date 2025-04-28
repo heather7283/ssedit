@@ -287,6 +287,19 @@ int main(int argc, char **argv) {
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
+        for (const auto& line : lines) {
+            draw_list->AddLine(draw_pos + line.p1 * scale, draw_pos + line.p2 * scale,
+                               line.color, line.thickness * scale);
+        }
+        for (const auto& circle : circles) {
+            draw_list->AddCircle(draw_pos + circle.center * scale,
+                                 circle.radius * scale, circle.color, 0, circle.thickness * scale);
+        }
+        for (const auto& rect : rectangles) {
+            draw_list->AddRect(draw_pos + rect.start * scale, draw_pos + rect.end * scale,
+                               rect.color, 0.0f, 0, rect.thickness * scale);
+        }
+
         static bool drawing = false;
         static ImVec2 start_pos;
 
@@ -346,19 +359,6 @@ int main(int argc, char **argv) {
                 }
                 }
             }
-        }
-
-        for (const auto& line : lines) {
-            draw_list->AddLine(draw_pos + line.p1 * scale, draw_pos + line.p2 * scale,
-                               line.color, line.thickness * scale);
-        }
-        for (const auto& circle : circles) {
-            draw_list->AddCircle(draw_pos + circle.center * scale,
-                                 circle.radius * scale, circle.color, 0, circle.thickness * scale);
-        }
-        for (const auto& rect : rectangles) {
-            draw_list->AddRect(draw_pos + rect.start * scale, draw_pos + rect.end * scale,
-                               rect.color, 0.0f, 0, rect.thickness * scale);
         }
 
         ImGui::PopStyleColor();

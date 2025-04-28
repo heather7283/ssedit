@@ -10,6 +10,8 @@
 
 #include "log.hpp"
 
+#define IMVEC4_TO_COL32(vec) (IM_COL32(vec.x * 255, vec.y * 255, vec.z * 255, vec.w * 255))
+
 struct Line {
     ImVec2 p1, p2;
     ImU32 color;
@@ -210,7 +212,7 @@ int main(int argc, char **argv) {
     const char font[] = "/usr/share/fonts/nerdfonts/JetBrainsMonoNLNerdFont-Medium.ttf";
     io.Fonts->AddFontFromFileTTF(font, 19.f);
 
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImVec4 color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
 
     int img_w, img_h;
     int channels;
@@ -238,7 +240,7 @@ int main(int argc, char **argv) {
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
         ImGui::SetNextWindowBgAlpha(1.f);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, clear_color);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.45f, 0.55f, 0.60f, 1.00f));
         ImGui::Begin("ssedit", nullptr,
                      ImGuiWindowFlags_NoTitleBar |
                      ImGuiWindowFlags_NoResize |
@@ -249,7 +251,7 @@ int main(int argc, char **argv) {
 
         ImGui::Text("This is some useful text.");
 
-        ImGui::ColorEdit4("clear color", (float *)&clear_color);
+        ImGui::ColorEdit4("Color", (float *)&color);
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
@@ -296,20 +298,23 @@ int main(int argc, char **argv) {
                 switch (tool) {
                 case LINE: {
                     ImVec2 end_pos = local_mouse;
-                    lines.push_back({start_pos, end_pos, IM_COL32(255, 0, 0, 255), 2.0f});
+                    lines.push_back({start_pos, end_pos,
+                            IMVEC4_TO_COL32(color), 2.0f});
                     drawing = false;
                     break;
                 }
                 case CIRCLE: {
                     ImVec2 d = (local_mouse) - (start_pos);
                     float r = sqrt((d.x * d.x) + (d.y * d.y));
-                    circles.push_back({start_pos, r, IM_COL32(255, 0, 0, 255), 2.0f});
+                    circles.push_back({start_pos, r,
+                            IMVEC4_TO_COL32(color), 2.0f});
                     drawing = false;
                     break;
                 }
                 case RECTANGLE: {
                     ImVec2 end_pos = local_mouse;
-                    rectangles.push_back({start_pos, end_pos, IM_COL32(255, 0, 0, 255), 2.0f});
+                    rectangles.push_back({start_pos, end_pos,
+                            IMVEC4_TO_COL32(color), 2.0f});
                     drawing = false;
                     break;
                 }
@@ -318,20 +323,22 @@ int main(int argc, char **argv) {
                 switch (tool) {
                 case LINE: {
                     draw_list->AddLine(draw_pos + start_pos * scale, draw_pos + local_mouse * scale,
-                                       IM_COL32(255, 0, 0, 255), 2.0f * scale);
+                                       IMVEC4_TO_COL32(color), 2.0f * scale);
                     break;
                 }
                 case CIRCLE: {
                     ImVec2 d = (draw_pos + local_mouse * scale) - (draw_pos + start_pos * scale);
                     float r = sqrt((d.x * d.x) + (d.y * d.y));
                     draw_list->AddCircle(draw_pos + start_pos * scale, r,
-                                         IM_COL32(255, 0, 0, 255), 0, 2.0f * scale);
+                                         IMVEC4_TO_COL32(color),
+                                         0, 2.0f * scale);
                     break;
                 }
                 case RECTANGLE: {
                     draw_list->AddRect(draw_pos + start_pos * scale,
                                        draw_pos + local_mouse * scale,
-                                       IM_COL32(255, 0, 0, 255), 0.0f, 0, 2.0f * scale);
+                                       IMVEC4_TO_COL32(color),
+                                       0.0f, 0, 2.0f * scale);
                     break;
                 }
                 }

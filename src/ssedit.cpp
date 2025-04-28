@@ -1,7 +1,7 @@
-#include <wchar.h>
-#include <locale.h>
-#include <math.h>
+#include <clocale>
+#include <cmath>
 #include <vector>
+#include <memory>
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
@@ -10,32 +10,12 @@
 #include <stb/stb_image.h>
 #include <stb/stb_image_write.h>
 
+#include "shapes.hpp"
 #include "log.hpp"
 
 #define IMVEC4_TO_COL32(vec) (IM_COL32(vec.x * 255, vec.y * 255, vec.z * 255, vec.w * 255))
 
-struct Line {
-    ImVec2 p1, p2;
-    ImU32 color;
-    float thickness;
-};
-std::vector<Line> lines;
-
-struct Circle {
-    ImVec2 center;
-    float radius;
-    ImU32 color;
-    float thickness;
-};
-std::vector<Circle> circles;
-
-struct Rectangle {
-    ImVec2 start;
-    ImVec2 end;
-    ImU32 color;
-    float thickness;
-};
-std::vector<Rectangle> rectangles;
+std::vector<std::unique_ptr<Shape>> shapes;
 
 struct RenderContext {
     GLuint color_tex;
@@ -169,14 +149,8 @@ void SaveImage(int width, int height, void *data) {
     ImGui::Image(image_tex, ImVec2(width, height));
 
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    for (const auto& line : lines) {
-        draw_list->AddLine(line.p1, line.p2, line.color, line.thickness);
-    }
-    for (const auto& circle : circles) {
-        draw_list->AddCircle(circle.center, circle.radius, circle.color, 0, circle.thickness);
-    }
-    for (const auto& rect : rectangles) {
-        draw_list->AddRect(rect.start, rect.end, rect.color, 0.0f, 0, rect.thickness);
+    for (const auto &shape: shapes) {
+        shape->Draw(draw_list, ImVec2(0, 0), 1);
     }
 
     ImGui::End();
@@ -326,21 +300,16 @@ int main(int argc, char **argv) {
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-        for (const auto& line : lines) {
-            draw_list->AddLine(draw_pos + line.p1 * scale, draw_pos + line.p2 * scale,
-                               line.color, line.thickness * scale);
-        }
-        for (const auto& circle : circles) {
-            draw_list->AddCircle(draw_pos + circle.center * scale,
-                                 circle.radius * scale, circle.color, 0, circle.thickness * scale);
-        }
-        for (const auto& rect : rectangles) {
-            draw_list->AddRect(draw_pos + rect.start * scale, draw_pos + rect.end * scale,
-                               rect.color, 0.0f, 0, rect.thickness * scale);
-        }
-
         static bool drawing = false;
-        static ImVec2 start_pos;
+        static ImVec2 start_pos = ImVec2(0, 0);
+        static std::unique_ptr<Shape> cur_shape = NULL;
+
+        for (const auto &shape: shapes) {
+            shape->Draw(draw_list, draw_pos, scale);
+        }
+        if (cur_shape) {
+            cur_shape->Draw(draw_list, draw_pos, scale);
+        }
 
         if (ImGui::IsItemHovered()) {
             ImVec2 mouse = ImGui::GetIO().MousePos;
@@ -349,53 +318,29 @@ int main(int argc, char **argv) {
             if (ImGui::IsMouseClicked(0)) {
                 drawing = true;
                 start_pos = local_mouse;
-            } else if (ImGui::IsMouseReleased(0) && drawing) {
+
                 switch (tool) {
-                case LINE: {
-                    ImVec2 end_pos = local_mouse;
-                    lines.push_back({start_pos, end_pos,
-                            IMVEC4_TO_COL32(color), thickness});
-                    drawing = false;
+                case LINE:
+                    cur_shape = std::make_unique<Line>(start_pos, start_pos,
+                                                       IMVEC4_TO_COL32(color), thickness);
                     break;
-                }
-                case CIRCLE: {
-                    ImVec2 d = (local_mouse) - (start_pos);
-                    float r = sqrt((d.x * d.x) + (d.y * d.y));
-                    circles.push_back({start_pos, r,
-                            IMVEC4_TO_COL32(color), thickness});
-                    drawing = false;
+                case CIRCLE:
+                    cur_shape = std::make_unique<Circle>(start_pos, 0,
+                                                         IMVEC4_TO_COL32(color), thickness);
                     break;
-                }
-                case RECTANGLE: {
-                    ImVec2 end_pos = local_mouse;
-                    rectangles.push_back({start_pos, end_pos,
-                            IMVEC4_TO_COL32(color), thickness});
-                    drawing = false;
+                case RECTANGLE:
+                    cur_shape = std::make_unique<Rectangle>(start_pos, start_pos,
+                                                            IMVEC4_TO_COL32(color), thickness);
                     break;
-                }
                 }
             } else if (drawing) {
-                switch (tool) {
-                case LINE: {
-                    draw_list->AddLine(draw_pos + start_pos * scale, draw_pos + local_mouse * scale,
-                                       IMVEC4_TO_COL32(color), thickness * scale);
-                    break;
-                }
-                case CIRCLE: {
-                    ImVec2 d = (draw_pos + local_mouse * scale) - (draw_pos + start_pos * scale);
-                    float r = sqrt((d.x * d.x) + (d.y * d.y));
-                    draw_list->AddCircle(draw_pos + start_pos * scale, r,
-                                         IMVEC4_TO_COL32(color),
-                                         0, thickness * scale);
-                    break;
-                }
-                case RECTANGLE: {
-                    draw_list->AddRect(draw_pos + start_pos * scale,
-                                       draw_pos + local_mouse * scale,
-                                       IMVEC4_TO_COL32(color),
-                                       0.0f, 0, thickness * scale);
-                    break;
-                }
+                cur_shape->Update(local_mouse);
+
+                if (ImGui::IsMouseReleased(0)) {
+                    shapes.push_back(std::move(cur_shape));
+                    cur_shape.reset();
+                    drawing = false;
+                    start_pos = ImVec2(0, 0);
                 }
             }
         }
@@ -426,6 +371,13 @@ int main(int argc, char **argv) {
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
+    // Delete OpenGL texture
+    glDeleteTextures(1, &tex);
+
+    // Free image memory
+    stbi_image_free(data);
+
+    // Destroy window and terminate GLFW
     glfwDestroyWindow(window);
     glfwTerminate();
 

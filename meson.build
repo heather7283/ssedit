@@ -28,6 +28,7 @@ imgui_lib = static_library('imgui', imgui_sources,
 
 ssedit_sources = [
   'src/ssedit.cpp',
+  'src/shapes.cpp',
   'src/log.cpp',
   'src/stb_image_impl.cpp',
   'src/stb_image_write_impl.cpp',

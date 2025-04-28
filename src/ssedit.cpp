@@ -239,8 +239,8 @@ int main(int argc, char **argv) {
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-        ImGui::SetNextWindowBgAlpha(1.f);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.45f, 0.55f, 0.60f, 1.00f));
+        //ImGui::SetNextWindowBgAlpha(1.f);
+        //ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.45f, 0.55f, 0.60f, 1.00f));
         ImGui::Begin("ssedit", nullptr,
                      ImGuiWindowFlags_NoTitleBar |
                      ImGuiWindowFlags_NoResize |
@@ -249,20 +249,20 @@ int main(int argc, char **argv) {
                      ImGuiWindowFlags_NoCollapse |
                      ImGuiWindowFlags_NoSavedSettings);
 
-        ImGui::Text("This is some useful text.");
-
         ImGui::ColorEdit4("Color", (float *)&color);
 
         static float thickness = 2.0f;
         ImGui::SliderFloat("Thickness", &thickness, 1.0f, 30.0f);
 
-        ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
         static enum Tool tool = LINE;
 
         if (ImGui::RadioButton("Line", tool == LINE)) { tool = LINE; }
+        ImGui::SameLine();
         if (ImGui::RadioButton("Circle", tool == CIRCLE)) { tool = CIRCLE; }
+        ImGui::SameLine();
         if (ImGui::RadioButton("Rect", tool == RECTANGLE)) { tool = RECTANGLE; }
+
+        ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
         if (ImGui::Button("Export to PNG")) {
             need_export = true;
@@ -361,7 +361,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        ImGui::PopStyleColor();
+        //ImGui::PopStyleColor();
         ImGui::End();
 
         // Rendering

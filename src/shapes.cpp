@@ -79,7 +79,7 @@ Arrow::Arrow(ImVec2 start, ImU32 color, float thickness) {
 }
 
 // Vibe coded, probably bad
-void Arrow::Draw(ImDrawList* draw_list, ImVec2 offset, float scale) const {
+void Arrow::Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const {
     // Draw the line (but stop before the arrowhead)
     const float arrow_size = 8.0f * scale * (thickness / 2.0f);
 

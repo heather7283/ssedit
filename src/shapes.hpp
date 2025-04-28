@@ -60,7 +60,7 @@ private:
 class Arrow: public Shape {
 public:
     Arrow(ImVec2 start, ImU32 color, float thickness);
-    void Draw(ImDrawList* draw_list, ImVec2 offset, float scale) const override;
+    void Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const override;
     void Update(ImVec2 pos) override;
 private:
     ImVec2 start;

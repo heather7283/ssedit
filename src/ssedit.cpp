@@ -33,7 +33,7 @@ static void glfw_char_callback(GLFWwindow *window, uint32_t codepoint) {
     LogPrint(INFO, "GLFW char: %lc", (wchar_t)codepoint);
 }
 
-static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+static void glfw_key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     bool ctrl_pressed = (mods & GLFW_MOD_CONTROL) || (mods & GLFW_MOD_SUPER);
 
     if (ctrl_pressed && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
@@ -53,7 +53,7 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 
 void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape>> &shapes) {
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Hide window since we render offscreen
-    GLFWwindow* window2 = glfwCreateWindow(w, h, "Offscreen ImGui", nullptr, nullptr);
+    GLFWwindow *window2 = glfwCreateWindow(w, h, "Offscreen ImGui", nullptr, nullptr);
     if (!window2) {
         LogPrint(ERR, "Failed to create window");
         return;
@@ -61,7 +61,7 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
     glfwMakeContextCurrent(window2);
 
     // Setup second ImGui context
-    ImGuiContext* imgui_context = ImGui::CreateContext();
+    ImGuiContext *imgui_context = ImGui::CreateContext();
     ImGui::SetCurrentContext(imgui_context);
     ImGui_ImplGlfw_InitForOpenGL(window2, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
@@ -102,7 +102,7 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
 
     ImGui::Image(image_tex, ImVec2(w, h));
 
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImDrawList *draw_list = ImGui::GetWindowDrawList();
     for (const auto &shape: shapes) {
         shape->Draw(draw_list, ImVec2(0, 0), 1);
     }
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGuiContext *imgui_context = ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
     io.IniFilename = nullptr; // disable automatic .ini file saving
 
     // Setup Platform/Renderer backends
@@ -278,7 +278,7 @@ int main(int argc, char **argv) {
         ImGui::SetCursorScreenPos(draw_pos);
         ImGui::Image((intptr_t)image_texture, display_size);
 
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        ImDrawList *draw_list = ImGui::GetWindowDrawList();
 
         for (const auto &shape: shapes) {
             shape->Draw(draw_list, draw_pos, scale);

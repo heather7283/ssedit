@@ -15,12 +15,6 @@
 
 #define IMVEC4_TO_COL32(vec) (IM_COL32(vec.x * 255, vec.y * 255, vec.z * 255, vec.w * 255))
 
-struct RenderContext {
-    GLuint color_tex;
-    GLuint fbo;
-    ImGuiContext* imgui_context;
-};
-
 enum Tool {
     LINE,
     CIRCLE,
@@ -28,28 +22,6 @@ enum Tool {
     FREEFORM,
     ARROW,
 };
-
-RenderContext create_render_context(int w, int h) {
-    RenderContext ctx;
-
-    // Create FBO and texture
-    glGenTextures(1, &ctx.color_tex);
-    glBindTexture(GL_TEXTURE_2D, ctx.color_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glGenFramebuffers(1, &ctx.fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, ctx.fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ctx.color_tex, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        LogPrint(ERR, "Framebuffer not complete!");
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    return ctx;
-}
 
 static void glfw_error_callback(int error, const char *description) {
     LogPrint(ERR, "GLFW error %d: %s", error, description);
@@ -89,22 +61,18 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 }
 
 // In your initialization code:
-void SaveImage(int width, int height, void *data,
-               const std::vector<std::unique_ptr<Shape>> &shapes) {
+void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape>> &shapes) {
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Hide window since we render offscreen
-    GLFWwindow* window2 = glfwCreateWindow(width, height, "Offscreen ImGui", nullptr, nullptr);
+    GLFWwindow* window2 = glfwCreateWindow(w, h, "Offscreen ImGui", nullptr, nullptr);
     if (!window2) {
         LogPrint(ERR, "Failed to create window");
         return;
     }
-
     glfwMakeContextCurrent(window2);
 
-    RenderContext ctx2 = create_render_context(width, height);
-
     // Setup second ImGui context
-    ctx2.imgui_context = ImGui::CreateContext();
-    ImGui::SetCurrentContext(ctx2.imgui_context);
+    ImGuiContext* imgui_context = ImGui::CreateContext();
+    ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io2 = ImGui::GetIO(); (void)io2;
     ImGui_ImplGlfw_InitForOpenGL(window2, true);
     ImGui_ImplOpenGL3_Init("#version 130");
@@ -115,7 +83,7 @@ void SaveImage(int width, int height, void *data,
 
     glGenTextures(1, &color_tex);
     glBindTexture(GL_TEXTURE_2D, color_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex, 0);
@@ -123,11 +91,11 @@ void SaveImage(int width, int height, void *data,
     GLuint image_tex;
     glGenTextures(1, &image_tex);
     glBindTexture(GL_TEXTURE_2D, image_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glViewport(0, 0, width, height);
+    glViewport(0, 0, w, h);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glClearColor(1, 1, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -137,7 +105,7 @@ void SaveImage(int width, int height, void *data,
     ImGui::NewFrame();
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::SetNextWindowSize(ImVec2(width, height));
+    ImGui::SetNextWindowSize(ImVec2(w, h));
     ImGui::SetNextWindowBgAlpha(1.f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -145,7 +113,7 @@ void SaveImage(int width, int height, void *data,
                                               | ImGuiWindowFlags_NoDecoration
                                               | ImGuiWindowFlags_NoSavedSettings);
 
-    ImGui::Image(image_tex, ImVec2(width, height));
+    ImGui::Image(image_tex, ImVec2(w, h));
 
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     for (const auto &shape: shapes) {
@@ -159,18 +127,20 @@ void SaveImage(int width, int height, void *data,
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    std::vector<unsigned char> pixels(width * height * 4);
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    unsigned char *pixels = new unsigned char[w * h * 4];
+    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
     stbi_flip_vertically_on_write(true);
-    stbi_write_png("output.png", width, height, 4, pixels.data(), width * 4);
+    stbi_write_png("output.png", w, h, 4, pixels, w * 4);
+
+    delete[] pixels;
 
     glDeleteTextures(1, &color_tex);
     glDeleteFramebuffers(1, &fbo);
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext(ctx2.imgui_context);
+    ImGui::DestroyContext(imgui_context);
     glfwDestroyWindow(window2);
 }
 

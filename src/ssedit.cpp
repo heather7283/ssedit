@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
         ImGui::ColorEdit4("Color", (float *)&color);
 
         static float thickness = 2.0f;
-        ImGui::SliderFloat("Thickness", &thickness, 1.0f, 15.0f);
+        ImGui::SliderFloat("Thickness", &thickness, 1.0f, 30.0f);
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 

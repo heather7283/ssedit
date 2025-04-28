@@ -226,8 +226,6 @@ int main(int argc, char **argv) {
     const char font[] = "/usr/share/fonts/nerdfonts/JetBrainsMonoNLNerdFont-Medium.ttf";
     io.Fonts->AddFontFromFileTTF(font, 19.f);
 
-    ImVec4 color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
-
     int img_w, img_h;
     int channels;
     unsigned char *data = stbi_load(argv[1], &img_w, &img_h, &channels, 4);
@@ -242,6 +240,15 @@ int main(int argc, char **argv) {
 
     // Main loop
     bool need_export = false;
+
+    enum Tool active_tool = FREEFORM;
+    float thickness = 2.0f;
+    ImVec4 color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+
+    bool drawing_active = false;
+    ImVec2 drawing_start_pos = ImVec2(0, 0);
+    std::unique_ptr<Shape> drawing_shape = NULL;
+
     while (!glfwWindowShouldClose(window)) {
         // Poll and handle events (inputs, window resize, etc.)
         glfwPollEvents();
@@ -265,18 +272,15 @@ int main(int argc, char **argv) {
 
         ImGui::ColorEdit4("Color", (float *)&color);
 
-        static float thickness = 2.0f;
         ImGui::SliderFloat("Thickness", &thickness, 1.0f, 30.0f);
 
-        static enum Tool tool = LINE;
-
-        if (ImGui::RadioButton("Line", tool == LINE)) { tool = LINE; }
+        if (ImGui::RadioButton("Line", active_tool == LINE)) { active_tool = LINE; }
         ImGui::SameLine();
-        if (ImGui::RadioButton("Circle", tool == CIRCLE)) { tool = CIRCLE; }
+        if (ImGui::RadioButton("Circle", active_tool == CIRCLE)) { active_tool = CIRCLE; }
         ImGui::SameLine();
-        if (ImGui::RadioButton("Rect", tool == RECTANGLE)) { tool = RECTANGLE; }
+        if (ImGui::RadioButton("Rect", active_tool == RECTANGLE)) { active_tool = RECTANGLE; }
         ImGui::SameLine();
-        if (ImGui::RadioButton("Freeform", tool == FREEFORM)) { tool = FREEFORM; }
+        if (ImGui::RadioButton("Freeform", active_tool == FREEFORM)) { active_tool = FREEFORM; }
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
@@ -303,15 +307,11 @@ int main(int argc, char **argv) {
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-        static bool drawing = false;
-        static ImVec2 start_pos = ImVec2(0, 0);
-        static std::unique_ptr<Shape> cur_shape = NULL;
-
         for (const auto &shape: shapes) {
             shape->Draw(draw_list, draw_pos, scale);
         }
-        if (cur_shape) {
-            cur_shape->Draw(draw_list, draw_pos, scale);
+        if (drawing_shape) {
+            drawing_shape->Draw(draw_list, draw_pos, scale);
         }
 
         if (ImGui::IsItemHovered()) {
@@ -319,35 +319,39 @@ int main(int argc, char **argv) {
             ImVec2 local_mouse = (mouse - draw_pos) * (1.0f / scale);  // convert to image space
 
             if (ImGui::IsMouseClicked(0)) {
-                drawing = true;
-                start_pos = local_mouse;
+                drawing_active = true;
+                drawing_start_pos = local_mouse;
 
-                switch (tool) {
+                switch (active_tool) {
                 case LINE:
-                    cur_shape = std::make_unique<Line>(start_pos,
-                                                       IMVEC4_TO_COL32(color), thickness);
+                    drawing_shape = std::make_unique<Line>(drawing_start_pos,
+                                                           IMVEC4_TO_COL32(color),
+                                                           thickness);
                     break;
                 case CIRCLE:
-                    cur_shape = std::make_unique<Circle>(start_pos,
-                                                         IMVEC4_TO_COL32(color), thickness);
+                    drawing_shape = std::make_unique<Circle>(drawing_start_pos,
+                                                             IMVEC4_TO_COL32(color),
+                                                             thickness);
                     break;
                 case RECTANGLE:
-                    cur_shape = std::make_unique<Rectangle>(start_pos,
-                                                            IMVEC4_TO_COL32(color), thickness);
+                    drawing_shape = std::make_unique<Rectangle>(drawing_start_pos,
+                                                                IMVEC4_TO_COL32(color),
+                                                                thickness);
                     break;
                 case FREEFORM:
-                    cur_shape = std::make_unique<Freeform>(start_pos,
-                                                           IMVEC4_TO_COL32(color), thickness);
+                    drawing_shape = std::make_unique<Freeform>(drawing_start_pos,
+                                                               IMVEC4_TO_COL32(color),
+                                                               thickness);
                     break;
                 }
-            } else if (drawing) {
-                cur_shape->Update(local_mouse);
+            } else if (drawing_active) {
+                drawing_shape->Update(local_mouse);
 
                 if (ImGui::IsMouseReleased(0)) {
-                    shapes.push_back(std::move(cur_shape));
-                    cur_shape.reset();
-                    drawing = false;
-                    start_pos = ImVec2(0, 0);
+                    shapes.push_back(std::move(drawing_shape));
+                    drawing_shape.reset();
+                    drawing_active = false;
+                    drawing_start_pos = ImVec2(0, 0);
                 }
             }
         }

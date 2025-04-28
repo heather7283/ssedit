@@ -181,6 +181,7 @@ int main(int argc, char **argv) {
     GLuint tex = LoadTexture(argv[1], img_w, img_h);
 
     // Main loop
+    bool need_export = false;
     while (!glfwWindowShouldClose(window)) {
         // Poll and handle events (inputs, window resize, etc.)
         glfwPollEvents();
@@ -209,7 +210,7 @@ int main(int argc, char **argv) {
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
         if (ImGui::Button("Export to PNG")) {
-            SaveImage(img_w, img_h, tex);
+            need_export = true;
         }
 
         DrawCanvas(tex, img_w, img_h);
@@ -225,6 +226,11 @@ int main(int argc, char **argv) {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
+
+        if (need_export) {
+            need_export = false;
+            SaveImage(img_w, img_h, tex);
+        }
     }
 
     // Cleanup

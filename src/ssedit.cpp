@@ -23,6 +23,8 @@ enum Tool {
     ARROW,
 };
 
+static const char glsl_version[] = "#version 130";
+
 static void glfw_error_callback(int error, const char *description) {
     LogPrint(ERR, "GLFW error %d: %s", error, description);
 }
@@ -32,35 +34,23 @@ static void glfw_char_callback(GLFWwindow *window, uint32_t codepoint) {
 }
 
 static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    // Check if Ctrl is held down
-    bool ctrlPressed = (mods & GLFW_MOD_CONTROL) || (mods & GLFW_MOD_SUPER);
+    bool ctrl_pressed = (mods & GLFW_MOD_CONTROL) || (mods & GLFW_MOD_SUPER);
 
-    if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-        if (ctrlPressed) {
-            switch (key) {
-            case GLFW_KEY_C:
-                // Handle Ctrl+C
-                LogPrint(INFO, "GLFW key: Ctrl+C pressed");
-                // Your copy logic here
-                break;
-
-            case GLFW_KEY_V:
-                // Handle Ctrl+V
-                LogPrint(INFO, "GLFW key: Ctrl+V pressed");
-                // Your paste logic here
-                break;
-
-            case GLFW_KEY_Z:
-                // Handle Ctrl+Z
-                LogPrint(INFO, "GLFW key: Ctrl+Z pressed");
-                // Your undo logic here
-                break;
-            }
+    if (ctrl_pressed && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+        switch (key) {
+        case GLFW_KEY_C:
+            LogPrint(INFO, "GLFW key: Ctrl+C pressed");
+            break;
+        case GLFW_KEY_V:
+            LogPrint(INFO, "GLFW key: Ctrl+V pressed");
+            break;
+        case GLFW_KEY_Z:
+            LogPrint(INFO, "GLFW key: Ctrl+Z pressed");
+            break;
         }
     }
 }
 
-// In your initialization code:
 void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape>> &shapes) {
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Hide window since we render offscreen
     GLFWwindow* window2 = glfwCreateWindow(w, h, "Offscreen ImGui", nullptr, nullptr);
@@ -73,18 +63,17 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
     // Setup second ImGui context
     ImGuiContext* imgui_context = ImGui::CreateContext();
     ImGui::SetCurrentContext(imgui_context);
-    ImGuiIO& io2 = ImGui::GetIO(); (void)io2;
     ImGui_ImplGlfw_InitForOpenGL(window2, true);
-    ImGui_ImplOpenGL3_Init("#version 130");
+    ImGui_ImplOpenGL3_Init(glsl_version);
 
-    GLuint fbo, color_tex;
+    GLuint fbo;
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
+    GLuint color_tex;
     glGenTextures(1, &color_tex);
     glBindTexture(GL_TEXTURE_2D, color_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex, 0);
 
@@ -97,8 +86,6 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
 
     glViewport(0, 0, w, h);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glClearColor(1, 1, 1, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -155,7 +142,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    const char *glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 

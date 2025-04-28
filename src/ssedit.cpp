@@ -206,9 +206,12 @@ int main(int argc, char **argv) {
 
     GLenum err = glewInit();
     if (err != GLEW_OK) {
+        if (err != 4) {
+            LogPrint(WARN, "Failed to init GLEW: %s (%d)", glewGetErrorString(err), err);
+            return 1;
+        }
         LogPrint(WARN, "GLEW init returned %d (%s)", err, glewGetErrorString(err));
         LogPrint(WARN, "This appears to be a bug: https://github.com/nigels-com/glew/issues/417");
-        //return -1;
     }
 
     // Setup Dear ImGui context

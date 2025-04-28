@@ -17,70 +17,59 @@ struct Line {
 };
 std::vector<Line> lines;
 
+struct RenderContext {
+    GLuint color_tex;
+    GLuint fbo;
+    ImGuiContext* imgui_context;
+};
+
+RenderContext create_render_context(int w, int h) {
+    RenderContext ctx;
+
+    // Create FBO and texture
+    glGenTextures(1, &ctx.color_tex);
+    glBindTexture(GL_TEXTURE_2D, ctx.color_tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glGenFramebuffers(1, &ctx.fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, ctx.fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ctx.color_tex, 0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        LogPrint(ERR, "Framebuffer not complete!");
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return ctx;
+}
+
 static void glfw_error_callback(int error, const char *description) {
     LogPrint(ERR, "GLFW error %d: %s", error, description);
 }
 
-GLuint LoadTexture(const char* path, int& width, int& height) {
-    int channels;
-    unsigned char* data = stbi_load(path, &width, &height, &channels, 4);
-    if (!data) return 0;
-
-    GLuint tex;
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    stbi_image_free(data);
-    return tex;
-}
-
-void DrawCanvas(GLuint texture, int img_w, int img_h) {
-    ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
-    ImVec2 content_region = ImGui::GetContentRegionAvail();
-
-    // Compute scale to fit image while preserving aspect ratio
-    float scale = std::min(content_region.x / img_w, content_region.y / img_h);
-    ImVec2 display_size = ImVec2(img_w * scale, img_h * scale);
-
-    // Center the image inside the content region (optional)
-    ImVec2 offset = ImVec2(
-        (content_region.x - display_size.x) * 0.5f,
-        (content_region.y - display_size.y) * 0.5f
-    );
-    ImVec2 draw_pos = canvas_pos + offset;
-
-    ImGui::SetCursorScreenPos(draw_pos);
-    ImGui::Image((intptr_t)texture, display_size);
-
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-    static bool drawing = false;
-    static ImVec2 start_pos;
-
-    if (ImGui::IsItemHovered()) {
-        ImVec2 mouse = ImGui::GetIO().MousePos;
-        ImVec2 local_mouse = (mouse - draw_pos) * (1.0f / scale);  // convert to image space
-
-        if (ImGui::IsMouseClicked(0)) {
-            drawing = true;
-            start_pos = local_mouse;
-        } else if (ImGui::IsMouseReleased(0) && drawing) {
-            ImVec2 end_pos = local_mouse;
-            lines.push_back({start_pos, end_pos, IM_COL32(255, 0, 0, 255), 2.0f});
-            drawing = false;
-        }
+void SaveImage(int width, int height, void *data) {
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Hide window since we render offscreen
+    GLFWwindow* window2 = glfwCreateWindow(width, height, "Offscreen ImGui", nullptr, nullptr);
+    if (!window2) {
+        LogPrint(ERR, "Failed to create window");
+        return;
     }
 
-    for (const auto& line : lines) {
-        draw_list->AddLine(draw_pos + line.p1 * scale, draw_pos + line.p2 * scale,
-                           line.color, line.thickness * scale);
-    }
-}
+    glfwMakeContextCurrent(window2);
+    glewExperimental = true;
+    glewInit();
 
-void SaveImage(int width, int height, GLuint image_tex) {
+    RenderContext ctx2 = create_render_context(width, height);
+
+    // Setup second ImGui context
+    ctx2.imgui_context = ImGui::CreateContext();
+    ImGui::SetCurrentContext(ctx2.imgui_context);
+    ImGuiIO& io2 = ImGui::GetIO(); (void)io2;
+    ImGui_ImplGlfw_InitForOpenGL(window2, true);
+    ImGui_ImplOpenGL3_Init("#version 130");
+
     GLuint fbo, color_tex;
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -92,31 +81,44 @@ void SaveImage(int width, int height, GLuint image_tex) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex, 0);
 
+    GLuint image_tex;
+    glGenTextures(1, &image_tex);
+    glBindTexture(GL_TEXTURE_2D, image_tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glClearColor(1, 1, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Render the image quad
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, image_tex);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0, 1); glVertex2f(-1, -1);
-    glTexCoord2f(1, 1); glVertex2f( 1, -1);
-    glTexCoord2f(1, 0); glVertex2f( 1,  1);
-    glTexCoord2f(0, 0); glVertex2f(-1,  1);
-    glEnd();
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 
-    // Draw lines using OpenGL directly
-    glDisable(GL_TEXTURE_2D);
-    glLineWidth(2.0f);
-    glColor3f(1, 0, 0);
-    glBegin(GL_LINES);
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImVec2(width, height));
+    ImGui::SetNextWindowBgAlpha(1.f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::Begin("Offscreen Window", nullptr, ImGuiWindowFlags_NoMove
+                                              | ImGuiWindowFlags_NoDecoration
+                                              | ImGuiWindowFlags_NoSavedSettings);
+
+    ImGui::Image(image_tex, ImVec2(width, height));
+
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
     for (const auto& line : lines) {
-        glVertex2f((line.p1.x / width) * 2.0f - 1.0f, 1.0f - (line.p1.y / height) * 2.0f);
-        glVertex2f((line.p2.x / width) * 2.0f - 1.0f, 1.0f - (line.p2.y / height) * 2.0f);
+        draw_list->AddLine(line.p1, line.p2, line.color, line.thickness);
     }
-    glEnd();
+
+    ImGui::End();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleVar();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     std::vector<unsigned char> pixels(width * height * 4);
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
@@ -126,6 +128,11 @@ void SaveImage(int width, int height, GLuint image_tex) {
 
     glDeleteTextures(1, &color_tex);
     glDeleteFramebuffers(1, &fbo);
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext(ctx2.imgui_context);
+    glfwDestroyWindow(window2);
 }
 
 // Main code
@@ -178,7 +185,16 @@ int main(int argc, char **argv) {
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     int img_w, img_h;
-    GLuint tex = LoadTexture(argv[1], img_w, img_h);
+    int channels;
+    unsigned char *data = stbi_load(argv[1], &img_w, &img_h, &channels, 4);
+    if (!data) return 0;
+
+    GLuint tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img_w, img_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // Main loop
     bool need_export = false;
@@ -213,7 +229,46 @@ int main(int argc, char **argv) {
             need_export = true;
         }
 
-        DrawCanvas(tex, img_w, img_h);
+        ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
+        ImVec2 content_region = ImGui::GetContentRegionAvail();
+
+        // Compute scale to fit image while preserving aspect ratio
+        float scale = std::min(content_region.x / img_w, content_region.y / img_h);
+        ImVec2 display_size = ImVec2(img_w * scale, img_h * scale);
+
+        // Center the image inside the content region (optional)
+        ImVec2 offset = ImVec2(
+            (content_region.x - display_size.x) * 0.5f,
+            (content_region.y - display_size.y) * 0.5f
+        );
+        ImVec2 draw_pos = canvas_pos + offset;
+
+        ImGui::SetCursorScreenPos(draw_pos);
+        ImGui::Image((intptr_t)tex, display_size);
+
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+        static bool drawing = false;
+        static ImVec2 start_pos;
+
+        if (ImGui::IsItemHovered()) {
+            ImVec2 mouse = ImGui::GetIO().MousePos;
+            ImVec2 local_mouse = (mouse - draw_pos) * (1.0f / scale);  // convert to image space
+
+            if (ImGui::IsMouseClicked(0)) {
+                drawing = true;
+                start_pos = local_mouse;
+            } else if (ImGui::IsMouseReleased(0) && drawing) {
+                ImVec2 end_pos = local_mouse;
+                lines.push_back({start_pos, end_pos, IM_COL32(255, 0, 0, 255), 2.0f});
+                drawing = false;
+            }
+        }
+
+        for (const auto& line : lines) {
+            draw_list->AddLine(draw_pos + line.p1 * scale, draw_pos + line.p2 * scale,
+                               line.color, line.thickness * scale);
+        }
 
         ImGui::PopStyleColor();
         ImGui::End();
@@ -228,8 +283,11 @@ int main(int argc, char **argv) {
         glfwSwapBuffers(window);
 
         if (need_export) {
+            ImGuiContext *ctx = ImGui::GetCurrentContext();
             need_export = false;
-            SaveImage(img_w, img_h, tex);
+            SaveImage(img_w, img_h, data);
+            glfwMakeContextCurrent(window);
+            ImGui::SetCurrentContext(ctx);
         }
     }
 

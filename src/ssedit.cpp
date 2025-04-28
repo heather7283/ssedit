@@ -15,9 +15,6 @@
 
 #define IMVEC4_TO_COL32(vec) (IM_COL32(vec.x * 255, vec.y * 255, vec.z * 255, vec.w * 255))
 
-std::vector<std::unique_ptr<Shape>> shapes;
-std::vector<std::unique_ptr<Shape>> redo_list;
-
 struct RenderContext {
     GLuint color_tex;
     GLuint fbo;
@@ -92,7 +89,8 @@ static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int act
 }
 
 // In your initialization code:
-void SaveImage(int width, int height, void *data) {
+void SaveImage(int width, int height, void *data,
+               const std::vector<std::unique_ptr<Shape>> &shapes) {
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Hide window since we render offscreen
     GLFWwindow* window2 = glfwCreateWindow(width, height, "Offscreen ImGui", nullptr, nullptr);
     if (!window2) {
@@ -254,6 +252,9 @@ int main(int argc, char **argv) {
     ImVec2 drawing_start_pos = ImVec2(0, 0);
     std::unique_ptr<Shape> drawing_shape = NULL;
 
+    std::vector<std::unique_ptr<Shape>> redo_list;
+    std::vector<std::unique_ptr<Shape>> shapes;
+
     while (!glfwWindowShouldClose(window)) {
         // Poll and handle events (inputs, window resize, etc.)
         glfwPollEvents();
@@ -339,7 +340,7 @@ int main(int argc, char **argv) {
             ImVec2 mouse = ImGui::GetIO().MousePos;
             ImVec2 local_mouse = (mouse - draw_pos) * (1.0f / scale);  // convert to image space
 
-            if (ImGui::IsMouseClicked(0)) {
+            if (ImGui::IsMouseClicked(0) && !drawing_active) {
                 drawing_active = true;
                 drawing_start_pos = local_mouse;
 
@@ -399,7 +400,7 @@ int main(int argc, char **argv) {
         if (need_export) {
             ImGuiContext *ctx = ImGui::GetCurrentContext();
             need_export = false;
-            SaveImage(img_w, img_h, data);
+            SaveImage(img_w, img_h, data, shapes);
             glfwMakeContextCurrent(window);
             ImGui::SetCurrentContext(ctx);
         }

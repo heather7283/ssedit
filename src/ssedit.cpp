@@ -27,6 +27,7 @@ enum Tool {
     LINE,
     CIRCLE,
     RECTANGLE,
+    FREEFORM,
 };
 
 RenderContext create_render_context(int w, int h) {
@@ -274,6 +275,8 @@ int main(int argc, char **argv) {
         if (ImGui::RadioButton("Circle", tool == CIRCLE)) { tool = CIRCLE; }
         ImGui::SameLine();
         if (ImGui::RadioButton("Rect", tool == RECTANGLE)) { tool = RECTANGLE; }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Freeform", tool == FREEFORM)) { tool = FREEFORM; }
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
@@ -331,6 +334,10 @@ int main(int argc, char **argv) {
                 case RECTANGLE:
                     cur_shape = std::make_unique<Rectangle>(start_pos, start_pos,
                                                             IMVEC4_TO_COL32(color), thickness);
+                    break;
+                case FREEFORM:
+                    cur_shape = std::make_unique<Freeform>(start_pos,
+                                                           IMVEC4_TO_COL32(color), thickness);
                     break;
                 }
             } else if (drawing) {

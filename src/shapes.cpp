@@ -1,4 +1,5 @@
 #include <cmath>
+#include <algorithm>
 
 #include "shapes.hpp"
 
@@ -49,5 +50,24 @@ void Rectangle::Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const {
 
 void Rectangle::Update(ImVec2 pos) {
     this->end = pos;
+}
+
+Freeform::Freeform(ImVec2 start, ImU32 color, float thickness) {
+    this->points.push_back(start);
+    this->color = color;
+    this->thickness = thickness;
+}
+
+void Freeform::Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const {
+    auto _ = std::adjacent_find(this->points.begin(), this->points.end(), [&](ImVec2 a, ImVec2 b) {
+        draw_list->AddLine(offset + a * scale, offset + b * scale,
+                           this->color, this->thickness * scale);
+        draw_list->AddCircleFilled(offset + b * scale, this->thickness * scale / 2, this->color);
+        return false;
+    });
+}
+
+void Freeform::Update(ImVec2 pos) {
+    this->points.push_back(pos);
 }
 

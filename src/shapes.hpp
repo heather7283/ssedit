@@ -1,5 +1,6 @@
 #pragma once
 
+#include <list>
 #include <imgui/imgui.h>
 
 class Shape {
@@ -41,6 +42,17 @@ public:
 private:
     ImVec2 start;
     ImVec2 end;
+    ImU32 color;
+    float thickness;
+};
+
+class Freeform: public Shape {
+public:
+    Freeform(ImVec2 start, ImU32 color, float thickness);
+    void Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const override;
+    void Update(ImVec2 pos) override;
+private:
+    std::list<ImVec2> points;
     ImU32 color;
     float thickness;
 };

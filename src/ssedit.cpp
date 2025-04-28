@@ -25,6 +25,14 @@ struct Circle {
 };
 std::vector<Circle> circles;
 
+struct Rectangle {
+    ImVec2 start;
+    ImVec2 end;
+    ImU32 color;
+    float thickness;
+};
+std::vector<Rectangle> rectangles;
+
 struct RenderContext {
     GLuint color_tex;
     GLuint fbo;
@@ -34,6 +42,7 @@ struct RenderContext {
 enum Tool {
     LINE,
     CIRCLE,
+    RECTANGLE,
 };
 
 RenderContext create_render_context(int w, int h) {
@@ -127,6 +136,9 @@ void SaveImage(int width, int height, void *data) {
     }
     for (const auto& circle : circles) {
         draw_list->AddCircle(circle.center, circle.radius, circle.color, 0, circle.thickness);
+    }
+    for (const auto& rect : rectangles) {
+        draw_list->AddRect(rect.start, rect.end, rect.color, 0.0f, 0, rect.thickness);
     }
 
     ImGui::End();
@@ -245,6 +257,7 @@ int main(int argc, char **argv) {
 
         if (ImGui::RadioButton("Line", tool == LINE)) { tool = LINE; }
         if (ImGui::RadioButton("Circle", tool == CIRCLE)) { tool = CIRCLE; }
+        if (ImGui::RadioButton("Rect", tool == RECTANGLE)) { tool = RECTANGLE; }
 
         if (ImGui::Button("Export to PNG")) {
             need_export = true;
@@ -294,6 +307,12 @@ int main(int argc, char **argv) {
                     drawing = false;
                     break;
                 }
+                case RECTANGLE: {
+                    ImVec2 end_pos = local_mouse;
+                    rectangles.push_back({start_pos, end_pos, IM_COL32(255, 0, 0, 255), 2.0f});
+                    drawing = false;
+                    break;
+                }
                 }
             } else if (drawing) {
                 switch (tool) {
@@ -309,6 +328,12 @@ int main(int argc, char **argv) {
                                          IM_COL32(255, 0, 0, 255), 0, 2.0f * scale);
                     break;
                 }
+                case RECTANGLE: {
+                    draw_list->AddRect(draw_pos + start_pos * scale,
+                                       draw_pos + local_mouse * scale,
+                                       IM_COL32(255, 0, 0, 255), 0.0f, 0, 2.0f * scale);
+                    break;
+                }
                 }
             }
         }
@@ -320,6 +345,10 @@ int main(int argc, char **argv) {
         for (const auto& circle : circles) {
             draw_list->AddCircle(draw_pos + circle.center * scale,
                                  circle.radius * scale, circle.color, 0, circle.thickness * scale);
+        }
+        for (const auto& rect : rectangles) {
+            draw_list->AddRect(draw_pos + rect.start * scale, draw_pos + rect.end * scale,
+                               rect.color, 0.0f, 0, rect.thickness * scale);
         }
 
         ImGui::PopStyleColor();

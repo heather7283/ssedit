@@ -253,6 +253,9 @@ int main(int argc, char **argv) {
 
         ImGui::ColorEdit4("Color", (float *)&color);
 
+        static float thickness = 2.0f;
+        ImGui::SliderFloat("Thickness", &thickness, 1.0f, 15.0f);
+
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
         static enum Tool tool = LINE;
@@ -299,7 +302,7 @@ int main(int argc, char **argv) {
                 case LINE: {
                     ImVec2 end_pos = local_mouse;
                     lines.push_back({start_pos, end_pos,
-                            IMVEC4_TO_COL32(color), 2.0f});
+                            IMVEC4_TO_COL32(color), thickness});
                     drawing = false;
                     break;
                 }
@@ -307,14 +310,14 @@ int main(int argc, char **argv) {
                     ImVec2 d = (local_mouse) - (start_pos);
                     float r = sqrt((d.x * d.x) + (d.y * d.y));
                     circles.push_back({start_pos, r,
-                            IMVEC4_TO_COL32(color), 2.0f});
+                            IMVEC4_TO_COL32(color), thickness});
                     drawing = false;
                     break;
                 }
                 case RECTANGLE: {
                     ImVec2 end_pos = local_mouse;
                     rectangles.push_back({start_pos, end_pos,
-                            IMVEC4_TO_COL32(color), 2.0f});
+                            IMVEC4_TO_COL32(color), thickness});
                     drawing = false;
                     break;
                 }
@@ -323,7 +326,7 @@ int main(int argc, char **argv) {
                 switch (tool) {
                 case LINE: {
                     draw_list->AddLine(draw_pos + start_pos * scale, draw_pos + local_mouse * scale,
-                                       IMVEC4_TO_COL32(color), 2.0f * scale);
+                                       IMVEC4_TO_COL32(color), thickness * scale);
                     break;
                 }
                 case CIRCLE: {
@@ -331,14 +334,14 @@ int main(int argc, char **argv) {
                     float r = sqrt((d.x * d.x) + (d.y * d.y));
                     draw_list->AddCircle(draw_pos + start_pos * scale, r,
                                          IMVEC4_TO_COL32(color),
-                                         0, 2.0f * scale);
+                                         0, thickness * scale);
                     break;
                 }
                 case RECTANGLE: {
                     draw_list->AddRect(draw_pos + start_pos * scale,
                                        draw_pos + local_mouse * scale,
                                        IMVEC4_TO_COL32(color),
-                                       0.0f, 0, 2.0f * scale);
+                                       0.0f, 0, thickness * scale);
                     break;
                 }
                 }

@@ -1,3 +1,5 @@
+#include <wchar.h>
+#include <locale.h>
 #include <math.h>
 #include <vector>
 #include <imgui/imgui.h>
@@ -73,6 +75,40 @@ static void glfw_error_callback(int error, const char *description) {
     LogPrint(ERR, "GLFW error %d: %s", error, description);
 }
 
+static void glfw_char_callback(GLFWwindow *window, uint32_t codepoint) {
+    LogPrint(INFO, "GLFW char: %lc", (wchar_t)codepoint);
+}
+
+static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    // Check if Ctrl is held down
+    bool ctrlPressed = (mods & GLFW_MOD_CONTROL) || (mods & GLFW_MOD_SUPER);
+
+    if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+        if (ctrlPressed) {
+            switch (key) {
+            case GLFW_KEY_C:
+                // Handle Ctrl+C
+                LogPrint(INFO, "GLFW key: Ctrl+C pressed");
+                // Your copy logic here
+                break;
+
+            case GLFW_KEY_V:
+                // Handle Ctrl+V
+                LogPrint(INFO, "GLFW key: Ctrl+V pressed");
+                // Your paste logic here
+                break;
+
+            case GLFW_KEY_Z:
+                // Handle Ctrl+Z
+                LogPrint(INFO, "GLFW key: Ctrl+Z pressed");
+                // Your undo logic here
+                break;
+            }
+        }
+    }
+}
+
+// In your initialization code:
 void SaveImage(int width, int height, void *data) {
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Hide window since we render offscreen
     GLFWwindow* window2 = glfwCreateWindow(width, height, "Offscreen ImGui", nullptr, nullptr);
@@ -167,6 +203,7 @@ void SaveImage(int width, int height, void *data) {
 
 // Main code
 int main(int argc, char **argv) {
+    setlocale(LC_ALL, "");
     LogInit(INFO, stderr);
 
     glfwSetErrorCallback(glfw_error_callback);
@@ -185,6 +222,8 @@ int main(int argc, char **argv) {
         LogPrint(ERR, "failed to create glfw window!");
         return 1;
     }
+    glfwSetCharCallback(window, glfw_char_callback);
+    glfwSetKeyCallback(window, glfw_key_callback);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 

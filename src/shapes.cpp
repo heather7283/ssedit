@@ -80,47 +80,41 @@ Arrow::Arrow(ImVec2 start, ImU32 color, float thickness) {
 
 // Vibe coded, probably bad
 void Arrow::Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const {
-    // Draw the line (but stop before the arrowhead)
-    const float arrow_size = 8.0f * scale * (thickness / 2.0f);
+    ImVec2 p0 = offset + this->start * scale;
+    ImVec2 p1 = offset + this->end * scale;
 
-    // Only draw arrowhead if line has some length
-    if (start.x != end.x || start.y != end.y) {
-        // Calculate direction vector
-        ImVec2 dir = ImVec2(end - start);
-        float length = sqrtf(dir.x * dir.x + dir.y * dir.y);
-        dir = dir * (1.0f / length); // normalize
+    ImVec2 dir = p0 - p1;
+    float length = sqrtf(dir.x * dir.x + dir.y * dir.y);
+    if (length == 0.0f) return;
+    dir.x /= length;
+    dir.y /= length;
 
-        // Calculate where the line should end (before the arrowhead starts)
-        ImVec2 line_end = end - dir * arrow_size * 0.7f;
+    const float thickness_scaled = this->thickness * scale;
+    const float head_length = 4.0f * thickness_scaled;  // Head length proportional to thickness
+    const float head_width = 3.0f * thickness_scaled;   // Head width proportional to thickness
 
-        // Draw the line
-        draw_list->AddLine(offset + start * scale,
-                         offset + line_end * scale,
-                         color,
-                         thickness * scale);
+    // Shift the end of the line back so it doesn't overlap the arrowhead
+    ImVec2 line_end = ImVec2(
+        p1.x + dir.x * head_length * 0.9,
+        p1.y + dir.y * head_length * 0.9
+    );
 
-        // Perpendicular vector
-        ImVec2 perp(-dir.y, dir.x);
+    draw_list->AddLine(p0, line_end, this->color, thickness_scaled);
 
-        // Calculate arrowhead points (tip extends beyond original end point)
-        ImVec2 tip = offset + end * scale;
-        ImVec2 base = tip - dir * arrow_size;
-        ImVec2 left = base + perp * arrow_size * 0.5f;
-        ImVec2 right = base - perp * arrow_size * 0.5f;
+    ImVec2 left = ImVec2(
+        p1.x + dir.x * head_length - dir.y * head_width * 0.5f,
+        p1.y + dir.y * head_length + dir.x * head_width * 0.5f
+    );
 
-        // Draw filled arrowhead
-        draw_list->AddTriangleFilled(tip, left, right, color);
-    }
-    else {
-        // Just draw a point if no length
-        draw_list->AddLine(offset + start * scale,
-                         offset + end * scale,
-                         color,
-                         thickness * scale);
-    }
+    ImVec2 right = ImVec2(
+        p1.x + dir.x * head_length + dir.y * head_width * 0.5f,
+        p1.y + dir.y * head_length - dir.x * head_width * 0.5f
+    );
+
+    draw_list->AddTriangleFilled(p1, left, right, this->color);
 }
 
 void Arrow::Update(ImVec2 pos) {
-    end = pos;
+    this->end = pos;
 }
 

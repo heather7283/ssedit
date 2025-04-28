@@ -16,6 +16,7 @@
 #define IMVEC4_TO_COL32(vec) (IM_COL32(vec.x * 255, vec.y * 255, vec.z * 255, vec.w * 255))
 
 std::vector<std::unique_ptr<Shape>> shapes;
+std::vector<std::unique_ptr<Shape>> redo_list;
 
 struct RenderContext {
     GLuint color_tex;
@@ -285,6 +286,20 @@ int main(int argc, char **argv) {
         ImGui::SameLine();
         if (ImGui::RadioButton("Arrow", active_tool == ARROW)) { active_tool = ARROW; }
 
+        if (ImGui::Button("Undo")) {
+            if (!shapes.empty()) {
+                redo_list.push_back(std::move(shapes.back()));
+                shapes.pop_back();
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Redo")) {
+            if (!redo_list.empty()) {
+                shapes.push_back(std::move(redo_list.back()));
+                redo_list.pop_back();
+            }
+        }
+
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
         if (ImGui::Button("Export to PNG")) {
@@ -357,6 +372,8 @@ int main(int argc, char **argv) {
 
                 if (ImGui::IsMouseReleased(0)) {
                     shapes.push_back(std::move(drawing_shape));
+                    redo_list.clear();
+
                     drawing_shape.reset();
                     drawing_active = false;
                     drawing_start_pos = ImVec2(0, 0);

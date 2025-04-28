@@ -28,6 +28,7 @@ enum Tool {
     CIRCLE,
     RECTANGLE,
     FREEFORM,
+    ARROW,
 };
 
 RenderContext create_render_context(int w, int h) {
@@ -281,6 +282,8 @@ int main(int argc, char **argv) {
         if (ImGui::RadioButton("Rect", active_tool == RECTANGLE)) { active_tool = RECTANGLE; }
         ImGui::SameLine();
         if (ImGui::RadioButton("Freeform", active_tool == FREEFORM)) { active_tool = FREEFORM; }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Arrow", active_tool == ARROW)) { active_tool = ARROW; }
 
         ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
@@ -342,6 +345,11 @@ int main(int argc, char **argv) {
                     drawing_shape = std::make_unique<Freeform>(drawing_start_pos,
                                                                IMVEC4_TO_COL32(color),
                                                                thickness);
+                    break;
+                case ARROW:
+                    drawing_shape = std::make_unique<Arrow>(drawing_start_pos,
+                                                            IMVEC4_TO_COL32(color),
+                                                            thickness);
                     break;
                 }
             } else if (drawing_active) {

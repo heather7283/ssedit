@@ -71,3 +71,56 @@ void Freeform::Update(ImVec2 pos) {
     this->points.push_back(pos);
 }
 
+Arrow::Arrow(ImVec2 start, ImU32 color, float thickness) {
+    this->start = start;
+    this->end = start;
+    this->color = color;
+    this->thickness = thickness;
+}
+
+// Vibe coded, probably bad
+void Arrow::Draw(ImDrawList* draw_list, ImVec2 offset, float scale) const {
+    // Draw the line (but stop before the arrowhead)
+    const float arrow_size = 8.0f * scale * (thickness / 2.0f);
+
+    // Only draw arrowhead if line has some length
+    if (start.x != end.x || start.y != end.y) {
+        // Calculate direction vector
+        ImVec2 dir = ImVec2(end - start);
+        float length = sqrtf(dir.x * dir.x + dir.y * dir.y);
+        dir = dir * (1.0f / length); // normalize
+
+        // Calculate where the line should end (before the arrowhead starts)
+        ImVec2 line_end = end - dir * arrow_size * 0.7f;
+
+        // Draw the line
+        draw_list->AddLine(offset + start * scale,
+                         offset + line_end * scale,
+                         color,
+                         thickness * scale);
+
+        // Perpendicular vector
+        ImVec2 perp(-dir.y, dir.x);
+
+        // Calculate arrowhead points (tip extends beyond original end point)
+        ImVec2 tip = offset + end * scale;
+        ImVec2 base = tip - dir * arrow_size;
+        ImVec2 left = base + perp * arrow_size * 0.5f;
+        ImVec2 right = base - perp * arrow_size * 0.5f;
+
+        // Draw filled arrowhead
+        draw_list->AddTriangleFilled(tip, left, right, color);
+    }
+    else {
+        // Just draw a point if no length
+        draw_list->AddLine(offset + start * scale,
+                         offset + end * scale,
+                         color,
+                         thickness * scale);
+    }
+}
+
+void Arrow::Update(ImVec2 pos) {
+    end = pos;
+}
+

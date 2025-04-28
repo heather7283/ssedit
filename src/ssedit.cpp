@@ -99,8 +99,6 @@ void SaveImage(int width, int height, void *data,
     }
 
     glfwMakeContextCurrent(window2);
-    glewExperimental = true;
-    glewInit();
 
     RenderContext ctx2 = create_render_context(width, height);
 

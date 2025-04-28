@@ -262,6 +262,9 @@ int main(int argc, char **argv) {
                 ImVec2 end_pos = local_mouse;
                 lines.push_back({start_pos, end_pos, IM_COL32(255, 0, 0, 255), 2.0f});
                 drawing = false;
+            } else if (drawing) {
+                draw_list->AddLine(draw_pos + start_pos * scale, draw_pos + local_mouse * scale,
+                                   IM_COL32(255, 0, 0, 255), 2.0f * scale);
             }
         }
 

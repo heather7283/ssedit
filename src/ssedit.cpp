@@ -122,6 +122,7 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
 
     delete[] pixels;
 
+    glDeleteTextures(1, &image_tex);
     glDeleteTextures(1, &color_tex);
     glDeleteFramebuffers(1, &fbo);
 

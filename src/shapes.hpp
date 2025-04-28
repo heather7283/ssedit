@@ -12,7 +12,7 @@ public:
 
 class Line: public Shape {
 public:
-    Line(ImVec2 start, ImVec2 end, ImU32 color, float thickness);
+    Line(ImVec2 start, ImU32 color, float thickness);
     void Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const override;
     void Update(ImVec2 pos) override;
 private:
@@ -24,7 +24,7 @@ private:
 
 class Circle: public Shape {
 public:
-    Circle(ImVec2 center, float radius, ImU32 color, float thickness);
+    Circle(ImVec2 center, ImU32 color, float thickness);
     void Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const override;
     void Update(ImVec2 pos) override;
 private:
@@ -36,7 +36,7 @@ private:
 
 class Rectangle: public Shape {
 public:
-    Rectangle(ImVec2 top_left, ImVec2 bottom_right, ImU32 color, float thickness);
+    Rectangle(ImVec2 top_left, ImU32 color, float thickness);
     void Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const override;
     void Update(ImVec2 pos) override;
 private:

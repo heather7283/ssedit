@@ -324,15 +324,15 @@ int main(int argc, char **argv) {
 
                 switch (tool) {
                 case LINE:
-                    cur_shape = std::make_unique<Line>(start_pos, start_pos,
+                    cur_shape = std::make_unique<Line>(start_pos,
                                                        IMVEC4_TO_COL32(color), thickness);
                     break;
                 case CIRCLE:
-                    cur_shape = std::make_unique<Circle>(start_pos, 0,
+                    cur_shape = std::make_unique<Circle>(start_pos,
                                                          IMVEC4_TO_COL32(color), thickness);
                     break;
                 case RECTANGLE:
-                    cur_shape = std::make_unique<Rectangle>(start_pos, start_pos,
+                    cur_shape = std::make_unique<Rectangle>(start_pos,
                                                             IMVEC4_TO_COL32(color), thickness);
                     break;
                 case FREEFORM:

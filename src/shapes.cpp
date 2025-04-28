@@ -3,9 +3,9 @@
 
 #include "shapes.hpp"
 
-Line::Line(ImVec2 start, ImVec2 end, ImU32 color, float thickness) {
+Line::Line(ImVec2 start, ImU32 color, float thickness) {
     this->start = start;
-    this->end = end;
+    this->end = start;
     this->color = color;
     this->thickness = thickness;
 }
@@ -19,9 +19,9 @@ void Line::Update(ImVec2 pos) {
     this->end = pos;
 }
 
-Circle::Circle(ImVec2 center, float radius, ImU32 color, float thickness) {
+Circle::Circle(ImVec2 center, ImU32 color, float thickness) {
     this->center = center;
-    this->radius = radius;
+    this->radius = 0;
     this->color = color;
     this->thickness = thickness;
 }
@@ -36,9 +36,9 @@ void Circle::Update(ImVec2 pos) {
     this->radius = sqrt((d.x * d.x) + (d.y * d.y));
 }
 
-Rectangle::Rectangle(ImVec2 top_left, ImVec2 bottom_right, ImU32 color, float thickness) {
-    this->start = top_left;
-    this->end = bottom_right;
+Rectangle::Rectangle(ImVec2 start, ImU32 color, float thickness) {
+    this->start = start;
+    this->end = start;
     this->color = color;
     this->thickness = thickness;
 }

@@ -11,6 +11,8 @@
 #include <stb/stb_image_write.h>
 
 #include "shapes.hpp"
+#include "utils.hpp"
+#include "decode.hpp"
 #include "log.hpp"
 
 #define IMVEC4_TO_COL32(vec) (IM_COL32(vec.x * 255, vec.y * 255, vec.z * 255, vec.w * 255))
@@ -192,18 +194,19 @@ int main(int argc, char **argv) {
 
     // Load Fonts (TODO: make configurable)
     const char font[] = "/usr/share/fonts/nerdfonts/JetBrainsMonoNLNerdFont-Medium.ttf";
-    const ImWchar font_ranges[] = {
-        32, 126,
-        0xed00, 0xf2ff,
-        0x25a0, 0x25cf,
-        0};
+    const ImWchar font_ranges[] = {     32,    126, // ASCII
+                                    0xed00, 0xf2ff,
+                                    0x25a0, 0x25cf, 0 };
     io.Fonts->AddFontFromFileTTF(font, 19.f, nullptr, font_ranges);
 
-    int img_w, img_h;
-    int channels;
-    unsigned char *data = stbi_load(argv[1], &img_w, &img_h, &channels, 4);
+    size_t data_size;
+    unsigned char *raw_data = ReadFileIntoMemory(argv[1], &data_size);
+    if (raw_data == NULL) {
+        return 1;
+    }
+    uint32_t img_w, img_h;
+    unsigned char *data = DecodeImage(raw_data, data_size, &img_w, &img_h);
     if (data == NULL) {
-        LogPrint(ERR, "failed to load image %s", argv[1]);
         return 1;
     }
 

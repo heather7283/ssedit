@@ -4,6 +4,8 @@ project('ssedit', 'cpp',
         meson_version: '>=1.1',
         default_options: ['warning_level=3', 'cpp_std=c++23'])
 
+add_project_arguments('-Wno-unused-parameter', language: 'cpp')
+
 gl_dep = dependency('gl')
 glew_dep = dependency('glew')
 glfw_dep = dependency('glfw3')
@@ -41,12 +43,12 @@ ssedit_sources = [
   'src/ssedit.cpp',
   'src/shapes.cpp',
   'src/decode.cpp',
+  'src/encode.cpp',
   'src/utils.cpp',
   'src/formats.cpp',
   'src/log.cpp',
   'src/backends/jpeg.cpp',
   'src/backends/png.cpp',
-  'src/stb_image_write_impl.cpp',
 ]
 
 executable('ssedit', ssedit_sources,

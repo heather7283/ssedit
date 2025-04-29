@@ -51,6 +51,12 @@ err:
     return nullptr;
 }
 
+void EncodeJPEGToFile(const char *filename,
+                      const unsigned char *data, size_t data_size,
+                      uint32_t width, uint32_t height) {
+    LogPrint(ERR, "JPEG encoder: JPEG encoding support is a TODO and this is a stub");
+}
+
 #else // #ifdef SSEDIT_HAVE_LIBTURBOJPEG
 
 #include "jpeg.hpp"
@@ -63,6 +69,12 @@ unsigned char *DecodeJPEG(const unsigned char *data, size_t data_size,
     *width = 0;
     *height = 0;
     return nullptr;
+}
+
+void EncodeJPEGToFile(const char *filename,
+                      const unsigned char *data, size_t data_size,
+                      uint32_t width, uint32_t height) {
+    LogPrint(ERR, "JPEG encoder: ssedit was compiled without JPEG support, how did you get here?");
 }
 
 #endif // #ifdef SSEDIT_HAVE_LIBTURBOJPEG

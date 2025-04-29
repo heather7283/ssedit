@@ -7,11 +7,11 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <stb/stb_image_write.h>
 
 #include "shapes.hpp"
 #include "utils.hpp"
 #include "decode.hpp"
+#include "encode.hpp"
 #include "log.hpp"
 
 #define IMVEC4_TO_COL32(vec) (IM_COL32(vec.x * 255, vec.y * 255, vec.z * 255, vec.w * 255))
@@ -117,9 +117,15 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
 
     unsigned char *pixels = new unsigned char[w * h * 4];
     glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    for (int y = 0; y < h / 2; ++y) {
+        int top_index = y * w * 4;
+        int bottom_index = (h - 1 - y) * w * 4;
+        for (int x = 0; x < w * 4; ++x) {
+            std::swap(pixels[top_index + x], pixels[bottom_index + x]);
+        }
+    }
 
-    stbi_flip_vertically_on_write(true);
-    stbi_write_png("output.png", w, h, 4, pixels, w * 4);
+    EncodeImageToFile("output.png", Format::PNG, pixels, w * h * 4, w, h);
 
     delete[] pixels;
 

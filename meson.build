@@ -1,5 +1,6 @@
 project('ssedit', 'cpp',
         version: '0.0.1',
+        license: 'GPL-3.0-or-later',
         meson_version: '>=1.1',
         default_options: ['warning_level=3', 'cpp_std=c++23'])
 

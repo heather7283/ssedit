@@ -7,7 +7,6 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <stb/stb_image.h>
 #include <stb/stb_image_write.h>
 
 #include "shapes.hpp"
@@ -413,9 +412,6 @@ int main(int argc, char **argv) {
 
     // Delete OpenGL texture
     glDeleteTextures(1, &image_texture);
-
-    // Free image memory
-    stbi_image_free(data);
 
     // Destroy window and terminate GLFW
     glfwDestroyWindow(window);

@@ -34,19 +34,19 @@ void LogPrint(LogLevel level, const char *fmt, ...) {
     const char *color_str;
     switch (level) {
     case INFO:
-        level_str = "[INFO] ";
+        level_str = "[I] ";
         color_str = ANSI_INFO;
         break;
     case WARN:
-        level_str = "[WARN] ";
+        level_str = "[!] ";
         color_str = ANSI_WARN;
         break;
     case ERR:
-        level_str = "[ERROR] ";
+        level_str = "[X] ";
         color_str = ANSI_ERROR;
         break;
     default:
-        level_str = "[?????] ";
+        level_str = "[?] ";
         color_str = ANSI_ERROR;
     }
 

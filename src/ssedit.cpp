@@ -149,14 +149,17 @@ int main(int argc, char **argv) {
     LogInit(INFO, stderr);
 
     glfwSetErrorCallback(glfw_error_callback);
+    glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_DISABLE_LIBDECOR);
     if (glfwInit() != GLFW_TRUE) {
         LogPrint(ERR, "failed to initialize glfw!");
         return 1;
     }
+    LogPrint(INFO, "GLFW version %s", glfwGetVersionString());
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
     // Create window with graphics context
+    glfwWindowHintString(GLFW_WAYLAND_APP_ID, "ssedit");
     GLFWwindow *window = glfwCreateWindow(1280, 720, "ssedit", nullptr, nullptr);
     if (window == nullptr) {
         LogPrint(ERR, "failed to create glfw window!");

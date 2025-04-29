@@ -64,6 +64,8 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
     // Setup second ImGui context
     ImGuiContext *imgui_context = ImGui::CreateContext();
     ImGui::SetCurrentContext(imgui_context);
+    ImGuiIO &io = ImGui::GetIO();
+    io.IniFilename = nullptr; // disable automatic .ini file saving
     ImGui_ImplGlfw_InitForOpenGL(window2, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 

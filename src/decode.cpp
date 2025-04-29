@@ -12,7 +12,7 @@
 #include "backends/png.hpp"
 #include "backends/jpeg.hpp"
 
-enum Format {
+enum class Format {
     PNG,
     JPEG,
     INVALID,
@@ -44,7 +44,7 @@ static Format MatchFormat(const unsigned char *data, size_t data_size) {
     });
 
     if (it == std::end(magics)) {
-        return INVALID;
+        return Format::INVALID;
     } else {
         return it->first;
     }
@@ -52,10 +52,10 @@ static Format MatchFormat(const unsigned char *data, size_t data_size) {
 
 static const char *FormatToString(Format format) {
     switch (format) {
-    case PNG:     return "PNG";
-    case JPEG:    return "JPEG";
-    case INVALID: return "INVALID";
-    default:      return "?????";
+    case Format::PNG:     return "PNG";
+    case Format::JPEG:    return "JPEG";
+    case Format::INVALID: return "INVALID";
+    default:              return "?????";
     }
 }
 

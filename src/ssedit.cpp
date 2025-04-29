@@ -132,6 +132,17 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
     glfwDestroyWindow(window2);
 }
 
+bool ButtonConditional(const char *label, bool cond = true, const ImVec2 &size = ImVec2(0, 0)) {
+    if (cond) {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+    }
+    bool ret = ImGui::Button(label, size);
+    if (cond) {
+        ImGui::PopStyleColor();
+    }
+    return ret;
+}
+
 // Main code
 int main(int argc, char **argv) {
     setlocale(LC_ALL, "");
@@ -178,7 +189,12 @@ int main(int argc, char **argv) {
 
     // Load Fonts (TODO: make configurable)
     const char font[] = "/usr/share/fonts/nerdfonts/JetBrainsMonoNLNerdFont-Medium.ttf";
-    io.Fonts->AddFontFromFileTTF(font, 19.f);
+    const ImWchar font_ranges[] = {
+        32, 126,
+        0xed00, 0xf2ff,
+        0x25a0, 0x25cf,
+        0};
+    io.Fonts->AddFontFromFileTTF(font, 19.f, nullptr, font_ranges);
 
     int img_w, img_h;
     int channels;
@@ -220,47 +236,74 @@ int main(int argc, char **argv) {
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-        //ImGui::SetNextWindowBgAlpha(1.f);
-        //ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.45f, 0.55f, 0.60f, 1.00f));
         ImGui::Begin("ssedit", nullptr,
                      ImGuiWindowFlags_NoMove |
                      ImGuiWindowFlags_NoDecoration |
                      ImGuiWindowFlags_NoSavedSettings);
 
-        ImGui::ColorEdit4("Color", (float *)&color);
+        // Create a left panel for controls
+        ImGui::BeginChild("Controls", ImVec2(300, 0), true);
 
-        ImGui::SliderFloat("Thickness", &thickness, 1.0f, 30.0f);
+        ImGui::Text("Color");
+        ImGui::SetNextItemWidth(-1);
+        ImGui::ColorEdit4("##Color", (float *)&color);
 
-        if (ImGui::RadioButton("Line", active_tool == LINE)) { active_tool = LINE; }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Circle", active_tool == CIRCLE)) { active_tool = CIRCLE; }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Rect", active_tool == RECTANGLE)) { active_tool = RECTANGLE; }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Freeform", active_tool == FREEFORM)) { active_tool = FREEFORM; }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Arrow", active_tool == ARROW)) { active_tool = ARROW; }
+        ImGui::Text("Thickness");
+        ImGui::SetNextItemWidth(-1);
+        ImGui::SliderFloat("##Thickness", &thickness, 1.0f, 30.0f);
 
-        if (ImGui::Button("Undo")) {
+        ImGui::Text("Tool");
+        float available_width = ImGui::GetContentRegionAvail().x;
+        float button_count = 5.0f;
+        float spacing = ImGui::GetStyle().ItemSpacing.x;
+        float button_width = (available_width - (button_count - 1) * spacing) / button_count;
+        if (ButtonConditional("", active_tool == FREEFORM, ImVec2(button_width, 0))) {
+            active_tool = FREEFORM;
+        }
+        ImGui::SameLine();
+        if (ButtonConditional("|", active_tool == LINE, ImVec2(button_width, 0))) {
+            active_tool = LINE;
+        }
+        ImGui::SameLine();
+        if (ButtonConditional("●", active_tool == CIRCLE, ImVec2(button_width, 0))) {
+            active_tool = CIRCLE;
+        }
+        ImGui::SameLine();
+        if (ButtonConditional("■", active_tool == RECTANGLE, ImVec2(button_width, 0))) {
+            active_tool = RECTANGLE;
+        }
+        ImGui::SameLine();
+        if (ButtonConditional("", active_tool == ARROW, ImVec2(button_width, 0))) {
+            active_tool = ARROW;
+        }
+
+        ImGui::Text("");
+        if (ImGui::Button("Export to PNG")) {
+            need_export = true;
+        }
+        ImGui::SameLine();
+        available_width = ImGui::GetContentRegionAvail().x;
+        button_count = 2.0f;
+        spacing = ImGui::GetStyle().ItemSpacing.x;
+        button_width = (available_width - (button_count - 1) * spacing) / button_count;
+        if (ImGui::Button("Undo", ImVec2(button_width, 0))) {
             if (!shapes.empty()) {
                 redo_list.push_back(std::move(shapes.back()));
                 shapes.pop_back();
             }
         }
         ImGui::SameLine();
-        if (ImGui::Button("Redo")) {
+        if (ImGui::Button("Redo", ImVec2(button_width, 0))) {
             if (!redo_list.empty()) {
                 shapes.push_back(std::move(redo_list.back()));
                 redo_list.pop_back();
             }
         }
 
-        ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+        ImGui::EndChild(); // End of controls panel
 
-        if (ImGui::Button("Export to PNG")) {
-            need_export = true;
-        }
-
+        // Image area - takes up remaining space
+        ImGui::SameLine();
         ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
         ImVec2 content_region = ImGui::GetContentRegionAvail();
 
@@ -336,7 +379,6 @@ int main(int argc, char **argv) {
             }
         }
 
-        //ImGui::PopStyleColor();
         ImGui::End();
 
         // Rendering

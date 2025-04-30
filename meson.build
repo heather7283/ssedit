@@ -47,6 +47,11 @@ if not any_format_enabled
   error('You must enable support for at least one image format')
 endif
 
+wl_copy_prog = find_program('wl-copy', required: false)
+if not wl_copy_prog.found()
+  warning('wl-copy is not found but it is required for builtin clipboard copy')
+endif
+
 include_dirs = [
   'thirdparty',
   'thirdparty/imgui',

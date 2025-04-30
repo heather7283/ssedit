@@ -24,7 +24,7 @@ Image *EncodeImage(Image *src, Format format) {
     size_t out_size = 0;
 
     if (!CheckFormatSupport(format)) {
-        LogPrint(ERR, "Encoder: format %s is not supported", FormatToString(src->format));
+        LogPrint(ERR, "Encoder: format %s is not supported", FormatToString(format));
         return nullptr;
     }
 

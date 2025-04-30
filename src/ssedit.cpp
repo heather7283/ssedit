@@ -70,19 +70,16 @@ static void glfw_key_callback(GLFWwindow *window, int key, int scancode, int act
     }
 }
 
-void SaveImage(Image *orig_image, const std::vector<std::unique_ptr<Shape>> &shapes) {
+Image *GetModifiedPixels(Image *orig_image, const std::vector<std::unique_ptr<Shape>> &shapes) {
     Image *raw_image;
-    Image *encoded_image;
     unsigned char *pixels_buf = nullptr;
-    size_t pixels_buf_size = 0;
-
 
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Hide window since we render offscreen
     GLFWwindow *window2 = glfwCreateWindow(orig_image->w, orig_image->h,
                                            "ssedit_offscr", nullptr, nullptr);
     if (!window2) {
         LogPrint(ERR, "Failed to create window");
-        return;
+        return nullptr;
     }
     glfwMakeContextCurrent(window2);
 
@@ -156,13 +153,6 @@ void SaveImage(Image *orig_image, const std::vector<std::unique_ptr<Shape>> &sha
     raw_image = new Image(pixels_buf, orig_image->data_size,
                           orig_image->w, orig_image->h, Format::RGBA);
 
-    encoded_image = EncodeImage(raw_image, Format::PNG);
-    if (encoded_image != nullptr) {
-        CopyToClipboard(encoded_image);
-    }
-    delete raw_image;
-    delete encoded_image;
-
     glDeleteTextures(1, &image_tex);
     glDeleteTextures(1, &color_tex);
     glDeleteFramebuffers(1, &fbo);
@@ -171,6 +161,8 @@ void SaveImage(Image *orig_image, const std::vector<std::unique_ptr<Shape>> &sha
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext(imgui_context);
     glfwDestroyWindow(window2);
+
+    return raw_image;
 }
 
 bool ButtonConditional(const char *label, bool cond = true, const ImVec2 &size = ImVec2(0, 0)) {
@@ -359,8 +351,8 @@ int main(int argc, char **argv) {
     }
     close(fd);
 
-    Image *image = DecodeImage(raw_data, data_size);
-    if (image == nullptr) {
+    Image *orig_image = DecodeImage(raw_data, data_size);
+    if (orig_image == nullptr) {
         return 1;
     }
     free(raw_data);
@@ -368,8 +360,8 @@ int main(int argc, char **argv) {
     GLuint image_texture;
     glGenTextures(1, &image_texture);
     glBindTexture(GL_TEXTURE_2D, image_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->w, image->h,
-                 0, GL_RGBA, GL_UNSIGNED_BYTE, image->data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, orig_image->w, orig_image->h,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, orig_image->data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -470,8 +462,8 @@ int main(int argc, char **argv) {
         ImVec2 content_region = ImGui::GetContentRegionAvail();
 
         // Compute scale to fit image while preserving aspect ratio
-        float scale = std::min(content_region.x / image->w, content_region.y / image->h);
-        ImVec2 display_size = ImVec2(image->w * scale, image->h * scale);
+        float scale = std::min(content_region.x / orig_image->w, content_region.y / orig_image->h);
+        ImVec2 display_size = ImVec2(orig_image->w * scale, orig_image->h * scale);
 
         // Center the image inside the content region (optional)
         ImVec2 offset = ImVec2(
@@ -555,7 +547,14 @@ int main(int argc, char **argv) {
         if (need_export) {
             need_export = false;
 
-            SaveImage(image, shapes);
+            Image *raw_image = GetModifiedPixels(orig_image, shapes);
+
+            Image *encoded_image = EncodeImage(raw_image, Format::PNG);
+            delete raw_image;
+
+            if (encoded_image != nullptr) {
+                CopyToClipboard(encoded_image);
+            }
 
             glfwMakeContextCurrent(window);
             ImGui::SetCurrentContext(imgui_context);
@@ -574,7 +573,7 @@ int main(int argc, char **argv) {
     glfwDestroyWindow(window);
     glfwTerminate();
 
-    delete image;
+    delete orig_image;
 
     return 0;
 }

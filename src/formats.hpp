@@ -9,6 +9,7 @@ enum class Format {
 };
 
 Format MatchFormat(const unsigned char *data, size_t data_size);
+Format FormatFromString(const char *string);
 
 const char *FormatToString(Format format);
 const char *FormatToMIME(Format format);

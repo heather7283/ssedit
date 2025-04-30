@@ -5,6 +5,7 @@ project('ssedit', 'cpp',
         default_options: ['warning_level=3', 'cpp_std=c++23'])
 
 add_project_arguments('-Wno-unused-parameter', language: 'cpp')
+add_project_arguments('-DSSEDIT_VERSION="@0@"'.format(meson.project_version()), language: 'cpp')
 
 gl_dep = dependency('gl')
 glew_dep = dependency('glew')
@@ -12,12 +13,18 @@ glfw_dep = dependency('glfw3')
 
 spng_lib = dependency('spng', required: get_option('png'))
 if spng_lib.found()
-  add_project_arguments('-DSSEDIT_HAVE_LIBSPNG', language: 'cpp')
+  add_project_arguments([
+    '-DSSEDIT_HAVE_LIBSPNG',
+    '-DSSEDIT_LIBSPNG_VERSION="@0@"'.format(spng_lib.version()),
+  ], language: 'cpp')
 endif
 
 turbojpeg_lib = dependency('libturbojpeg', required: get_option('jpeg'))
 if turbojpeg_lib.found()
-  add_project_arguments('-DSSEDIT_HAVE_LIBTURBOJPEG', language: 'cpp')
+  add_project_arguments([
+    '-DSSEDIT_HAVE_LIBTURBOJPEG',
+    '-DSSEDIT_LIBTURBOJPEG_VERSION="@0@"'.format(turbojpeg_lib.version()),
+  ], language: 'cpp')
 endif
 
 format_libs = [ spng_lib, turbojpeg_lib ]

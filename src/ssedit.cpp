@@ -15,6 +15,7 @@
 #include "decode.hpp"
 #include "encode.hpp"
 #include "clibpoard.hpp"
+#include "features.hpp"
 #include "log.hpp"
 
 #define IMVEC4_TO_COL32(vec) (IM_COL32(vec.x * 255, vec.y * 255, vec.z * 255, vec.w * 255))
@@ -25,6 +26,20 @@ enum Tool {
     RECTANGLE,
     FREEFORM,
     ARROW,
+};
+
+static struct {
+    const char *input_filename;
+    int input_fd;
+    const char *output_filename;
+    int output_fd;
+    Format output_format;
+} config = {
+    .input_filename = nullptr,
+    .input_fd = -1,
+    .output_filename = nullptr,
+    .output_fd = -1,
+    .output_format = Format::PNG,
 };
 
 static const char glsl_version[] = "#version 130";
@@ -164,10 +179,119 @@ bool ButtonConditional(const char *label, bool cond = true, const ImVec2 &size =
     return ret;
 }
 
-// Main code
+void PrintHelpAndExit(FILE *stream, int rc) {
+    const char help_string[] =
+        "ssedit - edit screenshots\n"
+        "\n"
+        "Usage:\n"
+        "  ssedit [OPTIONS] [IN_FILE] [OUT_FILE]\n"
+        "\n"
+        "Options:\n"
+        "  -f FORMAT     Specify output image format\n"
+        "  -h            Display this message and exit\n"
+        "  -V            Display version info and exit\n"
+    ;
+
+    fputs(help_string, stream);
+    exit(rc);
+}
+
+void PrintVersionAndExit(int rc) {
+    const char version_string[] =
+        "ssedit:       " SSEDIT_VERSION              "\n"
+        "imgui:        " "%s"                        "\n"
+        "glfw:         " "%s"                        "\n"
+        "libspng:      " SSEDIT_LIBSPNG_VERSION      "\n"
+        "libturbojpeg: " SSEDIT_LIBTURBOJPEG_VERSION "\n"
+    ;
+
+    printf(version_string, ImGui::GetVersion(), glfwGetVersionString());
+    exit(rc);
+}
+
+bool ParseCommandLine(int argc, char **argv) {
+    int opt;
+
+    while ((opt = getopt(argc, argv, ":f:Vh")) != -1) {
+        switch (opt) {
+        case 'f':
+            config.output_format = FormatFromString(optarg);
+            if (config.output_format == Format::INVALID) {
+                LogPrint(ERR, "Invalid format: %s", optarg);
+                goto err;
+            }
+            break;
+        case 'V':
+            PrintVersionAndExit(0);
+            break;
+        case 'h':
+            PrintHelpAndExit(stdout, 0);
+            break;
+        case '?':
+            LogPrint(ERR, "Unknown option: %c", optopt);
+            PrintHelpAndExit(stderr, 1);
+            break;
+        case ':':
+            LogPrint(ERR, "Missing arg for %c", optopt);
+            PrintHelpAndExit(stderr, 1);
+            break;
+        default:
+            LogPrint(ERR, "Error while parsing command line options");
+            PrintHelpAndExit(stderr, 1);
+            break;
+        }
+    }
+
+    return true;
+
+err:
+    return false;
+}
+
 int main(int argc, char **argv) {
     setlocale(LC_ALL, "");
     LogInit(INFO, stderr);
+
+    if (!ParseCommandLine(argc, argv)) {
+        return 1;
+    };
+    if (argv[optind] != nullptr) {
+        config.input_filename = argv[optind++];
+    }
+    if (argv[optind] != nullptr) {
+        config.output_filename = argv[optind++];
+    }
+
+    if (config.input_filename == nullptr) {
+        if (isatty(STDIN_FILENO)) {
+            LogPrint(ERR, "Input file is not specified and stdin is a TTY");
+            return 1;
+        }
+        config.input_fd = STDIN_FILENO;
+    } else {
+        config.input_fd = open(config.input_filename, O_RDONLY | O_CLOEXEC);
+        if (config.input_fd < 0) {
+            LogPrint(ERR, "Failed to open input file %s (%s)",
+                     config.input_filename, strerror(errno));
+            return 1;
+        }
+    }
+    if (config.output_filename == nullptr) {
+        if (isatty(STDOUT_FILENO)) {
+            LogPrint(ERR, "Output file is not specified and stdout is a TTY");
+            return 1;
+        }
+        config.output_fd = STDOUT_FILENO;
+    } else {
+        config.output_fd = open(config.output_filename,
+                                O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC,
+                                S_IWUSR | S_IWGRP | S_IRUSR | S_IRGRP);
+        if (config.output_fd < 0) {
+            LogPrint(ERR, "Failed to open output file %s (%s)",
+                     config.output_filename, strerror(errno));
+            return 1;
+        }
+    }
 
     glfwSetErrorCallback(glfw_error_callback);
     glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_DISABLE_LIBDECOR);
@@ -175,7 +299,6 @@ int main(int argc, char **argv) {
         LogPrint(ERR, "failed to initialize glfw!");
         return 1;
     }
-    LogPrint(INFO, "GLFW version %s", glfwGetVersionString());
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 

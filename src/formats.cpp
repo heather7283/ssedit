@@ -6,6 +6,8 @@
 #include "features.hpp"
 #include "formats.hpp"
 
+#define STRCASEEQ(a, b) (strcasecmp((a), (b)) == 0)
+
 Format MatchFormat(const unsigned char *data, size_t data_size) {
     static const std::unordered_map<Format, std::vector<unsigned char>> magics = {
         {  Format::PNG, { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } },
@@ -27,6 +29,16 @@ Format MatchFormat(const unsigned char *data, size_t data_size) {
         return Format::INVALID;
     } else {
         return it->first;
+    }
+}
+
+Format FormatFromString(const char *string) {
+    if (STRCASEEQ(string, "PNG")) {
+        return Format::PNG;
+    } else if (STRCASEEQ(string, "JPG") || STRCASEEQ(string, "JPEG")) {
+        return Format::JPEG;
+    } else {
+        return Format::INVALID;
     }
 }
 

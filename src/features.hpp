@@ -1,5 +1,13 @@
 #pragma once
 
+#ifndef SSEDIT_LIBSPNG_VERSION
+#define SSEDIT_LIBSPNG_VERSION "none"
+#endif
+
+#ifndef SSEDIT_LIBTURBOJPEG_VERSION
+#define SSEDIT_LIBTURBOJPEG_VERSION "none"
+#endif
+
 inline bool HasFeaturePNG(void) {
 #ifdef SSEDIT_HAVE_LIBSPNG
     return true;

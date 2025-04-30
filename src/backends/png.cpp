@@ -141,8 +141,6 @@ unsigned char *EncodePNG(unsigned char *src_data, size_t src_data_size,
                           uint32_t src_width, uint32_t src_height, size_t *out_size) {
     LogPrint(ERR, "PNG encoder: ssedit was compiled without PNG support, how did you get here?");
 
-    *width = 0;
-    *height = 0;
     return nullptr;
 }
 

@@ -56,6 +56,11 @@ static void glfw_key_callback(GLFWwindow *window, int key, int scancode, int act
 }
 
 void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape>> &shapes) {
+    unsigned char *pixels_buf = nullptr;
+    size_t pixels_buf_size = 0;
+    unsigned char *encoded_buf = nullptr;
+    size_t encoded_buf_size = 0;
+
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Hide window since we render offscreen
     GLFWwindow *window2 = glfwCreateWindow(w, h, "Offscreen ImGui", nullptr, nullptr);
     if (!window2) {
@@ -120,23 +125,23 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    unsigned char *pixels = (unsigned char *)malloc(w * h * 4);
-    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    pixels_buf_size = w * h * 4; // RGBA
+    pixels_buf = (unsigned char *)malloc(pixels_buf_size);
+    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels_buf);
     for (int y = 0; y < h / 2; ++y) {
         int top_index = y * w * 4;
         int bottom_index = (h - 1 - y) * w * 4;
         for (int x = 0; x < w * 4; ++x) {
-            std::swap(pixels[top_index + x], pixels[bottom_index + x]);
+            std::swap(pixels_buf[top_index + x], pixels_buf[bottom_index + x]);
         }
     }
 
-    size_t buf_size;
-    unsigned char *buf = EncodeImage(Format::PNG, pixels, w * h * 4, w, h, &buf_size);
-    if (buf != nullptr) {
-        CopyToClipboard(Format::PNG, buf, buf_size);
+    encoded_buf = EncodeImage(Format::PNG, pixels_buf, pixels_buf_size, w, h, &encoded_buf_size);
+    if (encoded_buf != nullptr) {
+        CopyToClipboard(Format::PNG, encoded_buf, encoded_buf_size);
     }
-
-    free(pixels);
+    free(pixels_buf);
+    free(encoded_buf);
 
     glDeleteTextures(1, &image_tex);
     glDeleteTextures(1, &color_tex);

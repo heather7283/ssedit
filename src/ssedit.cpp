@@ -430,7 +430,7 @@ int main(int argc, char **argv) {
             active_tool = ARROW;
         }
 
-        ImGui::Text("");
+        ImGui::Text(" ");
         if (ImGui::Button("Copy to clipboard")) {
             need_export = true;
         }

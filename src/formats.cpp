@@ -39,6 +39,15 @@ const char *FormatToString(Format format) {
     }
 }
 
+const char *FormatToMIME(Format format) {
+    switch (format) {
+    case Format::PNG:     return "image/png";
+    case Format::JPEG:    return "image/jpeg";
+    case Format::INVALID:
+    default:              return "application/octet-stream; charset=binary";
+    }
+}
+
 bool CheckFormatSupport(Format format) {
     switch (format) {
     case Format::PNG:

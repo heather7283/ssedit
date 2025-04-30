@@ -2,5 +2,7 @@
 
 #include <cstddef>
 
-unsigned char *ReadFileIntoMemory(const char *path, size_t *size);
+unsigned char *ReadFromFD(int fd, size_t *size);
+
+bool WriteToFD(int fd, const unsigned char *buf, size_t buf_size);
 

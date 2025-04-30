@@ -46,6 +46,7 @@ ssedit_sources = [
   'src/encode.cpp',
   'src/utils.cpp',
   'src/formats.cpp',
+  'src/clipboard.cpp',
   'src/log.cpp',
   'src/backends/jpeg.cpp',
   'src/backends/png.cpp',

@@ -7,29 +7,27 @@
 #include "backends/png.hpp"
 #include "backends/jpeg.hpp"
 
-typedef void(*FileEncoderFunc)(const char *filename,
-                               const unsigned char *data, size_t data_size,
-                               uint32_t width, uint32_t height);
+typedef unsigned char *(*EncoderFunc)(unsigned char *src_data, size_t src_data_size,
+                                      uint32_t src_width, uint32_t src_height, size_t *out_size);
 
-static const std::unordered_map<Format, FileEncoderFunc> file_encoders = {
-    {  Format::PNG, EncodePNGToFile },
-    { Format::JPEG, EncodeJPEGToFile },
+static const std::unordered_map<Format, EncoderFunc> encoders = {
+    {  Format::PNG, EncodePNG },
+    { Format::JPEG, EncodeJPEG },
 };
 
-void EncodeImageToFile(const char *filename, Format format,
-                       const unsigned char *data, size_t data_size,
-                       uint32_t width, uint32_t height) {
-    FileEncoderFunc encoder = nullptr;
+unsigned char *EncodeImage(Format format, unsigned char *src_data, size_t src_data_size,
+                           uint32_t src_width, uint32_t src_height, size_t *out_size) {
+    EncoderFunc encoder = nullptr;
 
     if (!CheckFormatSupport(format)) {
-        LogPrint(ERR, "Decoder: format %s is not supported", FormatToString(format));
-        return;
+        LogPrint(ERR, "Encoder: format %s is not supported", FormatToString(format));
+        return nullptr;
     }
 
-    LogPrint(INFO, "Encoder: encoding image of size %dx%d into %s to %s",
-             width, height, FormatToString(format), filename);
+    LogPrint(INFO, "Encoder: encoding image of size %dx%d into %s",
+             src_width, src_height, FormatToString(format));
 
-    encoder = file_encoders.find(format)->second;
-    encoder(filename, data, data_size, width, height);
+    encoder = encoders.find(format)->second;
+    return encoder(src_data, src_data_size, src_width, src_height, out_size);
 }
 

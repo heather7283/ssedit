@@ -38,7 +38,7 @@ unsigned char *DecodePNG(const unsigned char *data, size_t data_size,
     *width = ihdr.width;
     *height = ihdr.height;
 
-    out = new unsigned char[out_size];
+    out = (unsigned char *)malloc(out_size);
     ret = spng_decode_image(ctx, out, out_size, SPNG_FMT_RGBA8, 0);
     if (ret != 0) {
         goto err;
@@ -54,17 +54,17 @@ err:
     }
 
     spng_ctx_free(ctx);
-    delete[] out;
+    free(out);
 
     return nullptr;
 }
 
-void EncodePNGToFile(const char *filename,
-                     const unsigned char *data, size_t data_size,
-                     uint32_t width, uint32_t height) {
+unsigned char *EncodePNG(unsigned char *src_data, size_t src_data_size,
+                         uint32_t src_width, uint32_t src_height, size_t *out_size) {
     int ret = 0;
     struct spng_ihdr ihdr;
-    FILE *file = nullptr;
+    unsigned char *out_buf = nullptr;
+    size_t out_buf_size = 0;
 
     LogPrint(INFO, "PNG encoder: using libspng version %s", spng_version_string());
 
@@ -75,8 +75,8 @@ void EncodePNGToFile(const char *filename,
     }
 
     ihdr = {
-        .width = width,
-        .height = height,
+        .width = src_width,
+        .height = src_height,
         .bit_depth = 8,
         .color_type = SPNG_COLOR_TYPE_TRUECOLOR_ALPHA,
         .compression_method = 0,
@@ -88,24 +88,25 @@ void EncodePNGToFile(const char *filename,
         goto err;
     }
 
-    file = fopen(filename, "wb");
-    if (file == nullptr) {
-        goto err;
-    }
-    ret = spng_set_png_file(ctx, file);
+    ret = spng_set_option(ctx, SPNG_ENCODE_TO_BUFFER, 1);
     if (ret != 0) {
         goto err;
     }
 
-    ret = spng_encode_image(ctx, data, data_size, SPNG_FMT_PNG, SPNG_ENCODE_FINALIZE);
+    ret = spng_encode_image(ctx, src_data, src_data_size, SPNG_FMT_PNG, SPNG_ENCODE_FINALIZE);
+    if (ret != 0) {
+        goto err;
+    }
+
+    out_buf = (unsigned char *)spng_get_png_buffer(ctx, &out_buf_size, &ret);
     if (ret != 0) {
         goto err;
     }
 
     spng_ctx_free(ctx);
-    fclose(file);
 
-    return;
+    *out_size = out_buf_size;
+    return out_buf;
 
 err:
     if (ret != 0) {
@@ -115,9 +116,11 @@ err:
     if (ctx != nullptr) {
         spng_ctx_free(ctx);
     }
-    if (file != nullptr) {
-        fclose(file);
+    if (out_buf != nullptr) {
+        free(out_buf);
     }
+
+    return nullptr;
 }
 
 #else // #ifdef SSEDIT_HAVE_LIBSPNG
@@ -134,8 +137,8 @@ unsigned char *DecodePNG(const unsigned char *data, size_t data_size,
     return nullptr;
 }
 
-unsigned char *EncodePNG(const unsigned char *data, size_t data_size,
-                         uint32_t width, uint32_t height, size_t *out_size) {
+unsigned char *EncodePNG(unsigned char *src_data, size_t src_data_size,
+                          uint32_t src_width, uint32_t src_height, size_t *out_size) {
     LogPrint(ERR, "PNG encoder: ssedit was compiled without PNG support, how did you get here?");
 
     *width = 0;

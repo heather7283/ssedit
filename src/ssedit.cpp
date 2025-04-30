@@ -1,7 +1,9 @@
-#include <clocale>
-#include <cmath>
 #include <vector>
 #include <memory>
+#include <cstdlib>
+#include <clocale>
+#include <cmath>
+#include <fcntl.h>
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
@@ -12,6 +14,7 @@
 #include "utils.hpp"
 #include "decode.hpp"
 #include "encode.hpp"
+#include "clibpoard.hpp"
 #include "log.hpp"
 
 #define IMVEC4_TO_COL32(vec) (IM_COL32(vec.x * 255, vec.y * 255, vec.z * 255, vec.w * 255))
@@ -117,7 +120,7 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    unsigned char *pixels = new unsigned char[w * h * 4];
+    unsigned char *pixels = (unsigned char *)malloc(w * h * 4);
     glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     for (int y = 0; y < h / 2; ++y) {
         int top_index = y * w * 4;
@@ -127,9 +130,13 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
         }
     }
 
-    EncodeImageToFile("output.png", Format::PNG, pixels, w * h * 4, w, h);
+    size_t buf_size;
+    unsigned char *buf = EncodeImage(Format::PNG, pixels, w * h * 4, w, h, &buf_size);
+    if (buf != nullptr) {
+        CopyToClipboard(Format::PNG, buf, buf_size);
+    }
 
-    delete[] pixels;
+    free(pixels);
 
     glDeleteTextures(1, &image_tex);
     glDeleteTextures(1, &color_tex);
@@ -206,16 +213,25 @@ int main(int argc, char **argv) {
                                     0x25a0, 0x25cf, 0 };
     io.Fonts->AddFontFromFileTTF(font, 19.f, nullptr, font_ranges);
 
+    int fd = open(argv[1], O_RDONLY);
+    if (fd < 0) {
+        LogPrint(ERR, "Failed to open %s (%s)", argv[1], strerror(errno));
+        return 1;
+    }
+
     size_t data_size;
-    unsigned char *raw_data = ReadFileIntoMemory(argv[1], &data_size);
+    unsigned char *raw_data = ReadFromFD(fd, &data_size);
     if (raw_data == NULL) {
         return 1;
     }
+    close(fd);
+
     uint32_t img_w, img_h;
     unsigned char *data = DecodeImage(raw_data, data_size, &img_w, &img_h);
     if (data == NULL) {
         return 1;
     }
+    free(raw_data);
 
     GLuint image_texture;
     glGenTextures(1, &image_texture);
@@ -291,7 +307,7 @@ int main(int argc, char **argv) {
         }
 
         ImGui::Text("");
-        if (ImGui::Button("Export to PNG")) {
+        if (ImGui::Button("Copy to clipboard")) {
             need_export = true;
         }
         ImGui::SameLine();
@@ -424,6 +440,8 @@ int main(int argc, char **argv) {
     // Destroy window and terminate GLFW
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    free(data);
 
     return 0;
 }

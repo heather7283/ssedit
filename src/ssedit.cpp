@@ -1,5 +1,6 @@
 #include <vector>
 #include <memory>
+#include <cstring>
 #include <cstdlib>
 #include <clocale>
 #include <cmath>
@@ -17,6 +18,8 @@
 #include "clibpoard.hpp"
 #include "features.hpp"
 #include "log.hpp"
+
+#define STREQ(a, b) (strcmp((a), (b)) == 0)
 
 #define IMVEC4_TO_COL32(vec) (IM_COL32(vec.x * 255, vec.y * 255, vec.z * 255, vec.w * 255))
 
@@ -181,7 +184,7 @@ void PrintHelpAndExit(FILE *stream, int rc) {
         "ssedit - edit screenshots\n"
         "\n"
         "Usage:\n"
-        "  ssedit [OPTIONS] [IN_FILE] [OUT_FILE]\n"
+        "  ssedit [OPTIONS] [IN_FILE [OUT_FILE]]\n"
         "\n"
         "Options:\n"
         "  -f FORMAT     Specify output image format\n"
@@ -239,6 +242,13 @@ bool ParseCommandLine(int argc, char **argv) {
         }
     }
 
+    if (argv[optind] != nullptr) {
+        config.input_filename = argv[optind++];
+    }
+    if (argv[optind] != nullptr) {
+        config.output_filename = argv[optind++];
+    }
+
     return true;
 
 err:
@@ -252,14 +262,8 @@ int main(int argc, char **argv) {
     if (!ParseCommandLine(argc, argv)) {
         return 1;
     };
-    if (argv[optind] != nullptr) {
-        config.input_filename = argv[optind++];
-    }
-    if (argv[optind] != nullptr) {
-        config.output_filename = argv[optind++];
-    }
 
-    if (config.input_filename == nullptr) {
+    if (config.input_filename == nullptr || STREQ(config.input_filename, "-")) {
         if (isatty(STDIN_FILENO)) {
             LogPrint(ERR, "Input file is not specified and stdin is a TTY");
             return 1;
@@ -273,7 +277,7 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
-    if (config.output_filename == nullptr) {
+    if (config.output_filename == nullptr || STREQ(config.output_filename, "-")) {
         if (isatty(STDOUT_FILENO)) {
             LogPrint(ERR, "Output file is not specified and stdout is a TTY");
             return 1;
@@ -338,18 +342,12 @@ int main(int argc, char **argv) {
                                     0x25a0, 0x25cf, 0 };
     io.Fonts->AddFontFromFileTTF(font, 19.f, nullptr, font_ranges);
 
-    int fd = open(argv[1], O_RDONLY);
-    if (fd < 0) {
-        LogPrint(ERR, "Failed to open %s (%s)", argv[1], strerror(errno));
-        return 1;
-    }
-
     size_t data_size;
-    unsigned char *raw_data = ReadFromFD(fd, &data_size);
+    unsigned char *raw_data = ReadFromFD(config.input_fd, &data_size);
     if (raw_data == NULL) {
         return 1;
     }
-    close(fd);
+    close(config.input_fd);
 
     Image *orig_image = DecodeImage(raw_data, data_size);
     if (orig_image == nullptr) {
@@ -549,7 +547,7 @@ int main(int argc, char **argv) {
 
             Image *raw_image = GetModifiedPixels(orig_image, shapes);
 
-            Image *encoded_image = EncodeImage(raw_image, Format::PNG);
+            Image *encoded_image = EncodeImage(raw_image, config.output_format);
             delete raw_image;
 
             if (encoded_image != nullptr) {
@@ -561,7 +559,12 @@ int main(int argc, char **argv) {
         }
     }
 
+    Image *final_image = GetModifiedPixels(orig_image, shapes);
+    delete orig_image;
+
     // Cleanup
+    glfwMakeContextCurrent(window);
+    ImGui::SetCurrentContext(imgui_context);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -573,7 +576,13 @@ int main(int argc, char **argv) {
     glfwDestroyWindow(window);
     glfwTerminate();
 
-    delete orig_image;
+    Image *encoded_final_image = EncodeImage(final_image, config.output_format);
+    delete final_image;
+
+    if (encoded_final_image != nullptr) {
+        WriteToFD(config.output_fd, encoded_final_image->data, encoded_final_image->data_size);
+    }
+    delete encoded_final_image;
 
     return 0;
 }

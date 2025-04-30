@@ -20,6 +20,18 @@ if turbojpeg_lib.found()
   add_project_arguments('-DSSEDIT_HAVE_LIBTURBOJPEG', language: 'cpp')
 endif
 
+format_libs = [ spng_lib, turbojpeg_lib ]
+any_format_enabled = false
+foreach format_lib: format_libs
+  if format_lib.found()
+    any_format_enabled = true
+    break
+  endif
+endforeach
+if not any_format_enabled
+  error('You must enable support for at least one image format')
+endif
+
 include_dirs = [
   'thirdparty',
   'thirdparty/imgui',

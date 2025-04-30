@@ -46,6 +46,7 @@ const char *FormatToString(Format format) {
     switch (format) {
     case Format::PNG:     return "PNG";
     case Format::JPEG:    return "JPEG";
+    case Format::RGBA:    return "RGBA";
     case Format::INVALID: return "INVALID";
     default:              return "?????";
     }
@@ -55,7 +56,6 @@ const char *FormatToMIME(Format format) {
     switch (format) {
     case Format::PNG:     return "image/png";
     case Format::JPEG:    return "image/jpeg";
-    case Format::INVALID:
     default:              return "application/octet-stream; charset=binary";
     }
 }

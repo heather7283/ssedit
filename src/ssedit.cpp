@@ -70,14 +70,16 @@ static void glfw_key_callback(GLFWwindow *window, int key, int scancode, int act
     }
 }
 
-void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape>> &shapes) {
+void SaveImage(Image *orig_image, const std::vector<std::unique_ptr<Shape>> &shapes) {
+    Image *raw_image;
+    Image *encoded_image;
     unsigned char *pixels_buf = nullptr;
     size_t pixels_buf_size = 0;
-    unsigned char *encoded_buf = nullptr;
-    size_t encoded_buf_size = 0;
+
 
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // Hide window since we render offscreen
-    GLFWwindow *window2 = glfwCreateWindow(w, h, "Offscreen ImGui", nullptr, nullptr);
+    GLFWwindow *window2 = glfwCreateWindow(orig_image->w, orig_image->h,
+                                           "ssedit_offscr", nullptr, nullptr);
     if (!window2) {
         LogPrint(ERR, "Failed to create window");
         return;
@@ -99,18 +101,20 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
     GLuint color_tex;
     glGenTextures(1, &color_tex);
     glBindTexture(GL_TEXTURE_2D, color_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, orig_image->w, orig_image->h,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex, 0);
 
     GLuint image_tex;
     glGenTextures(1, &image_tex);
     glBindTexture(GL_TEXTURE_2D, image_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, orig_image->w, orig_image->h,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, orig_image->data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glViewport(0, 0, w, h);
+    glViewport(0, 0, orig_image->w, orig_image->h);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -118,7 +122,7 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
     ImGui::NewFrame();
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::SetNextWindowSize(ImVec2(w, h));
+    ImGui::SetNextWindowSize(ImVec2(orig_image->w, orig_image->h));
     ImGui::SetNextWindowBgAlpha(1.f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -126,7 +130,7 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
                                               | ImGuiWindowFlags_NoDecoration
                                               | ImGuiWindowFlags_NoSavedSettings);
 
-    ImGui::Image(image_tex, ImVec2(w, h));
+    ImGui::Image(image_tex, ImVec2(orig_image->w, orig_image->h));
 
     ImDrawList *draw_list = ImGui::GetWindowDrawList();
     for (const auto &shape: shapes) {
@@ -140,23 +144,24 @@ void SaveImage(int w, int h, void *data, const std::vector<std::unique_ptr<Shape
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    pixels_buf_size = w * h * 4; // RGBA
-    pixels_buf = (unsigned char *)malloc(pixels_buf_size);
-    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels_buf);
-    for (int y = 0; y < h / 2; ++y) {
-        int top_index = y * w * 4;
-        int bottom_index = (h - 1 - y) * w * 4;
-        for (int x = 0; x < w * 4; ++x) {
+    pixels_buf = (unsigned char *)malloc(orig_image->data_size);
+    glReadPixels(0, 0, orig_image->w, orig_image->h, GL_RGBA, GL_UNSIGNED_BYTE, pixels_buf);
+    for (uint32_t y = 0; y < orig_image->h / 2; ++y) {
+        int top_index = y * orig_image->w * 4;
+        int bottom_index = (orig_image->h - 1 - y) * orig_image->w * 4;
+        for (uint32_t x = 0; x < orig_image->w * 4; ++x) {
             std::swap(pixels_buf[top_index + x], pixels_buf[bottom_index + x]);
         }
     }
+    raw_image = new Image(pixels_buf, orig_image->data_size,
+                          orig_image->w, orig_image->h, Format::RGBA);
 
-    encoded_buf = EncodeImage(Format::PNG, pixels_buf, pixels_buf_size, w, h, &encoded_buf_size);
-    if (encoded_buf != nullptr) {
-        CopyToClipboard(Format::PNG, encoded_buf, encoded_buf_size);
+    encoded_image = EncodeImage(raw_image, Format::PNG);
+    if (encoded_image != nullptr) {
+        CopyToClipboard(encoded_image);
     }
-    free(pixels_buf);
-    free(encoded_buf);
+    delete raw_image;
+    delete encoded_image;
 
     glDeleteTextures(1, &image_tex);
     glDeleteTextures(1, &color_tex);
@@ -354,9 +359,8 @@ int main(int argc, char **argv) {
     }
     close(fd);
 
-    uint32_t img_w, img_h;
-    unsigned char *data = DecodeImage(raw_data, data_size, &img_w, &img_h);
-    if (data == NULL) {
+    Image *image = DecodeImage(raw_data, data_size);
+    if (image == nullptr) {
         return 1;
     }
     free(raw_data);
@@ -364,7 +368,8 @@ int main(int argc, char **argv) {
     GLuint image_texture;
     glGenTextures(1, &image_texture);
     glBindTexture(GL_TEXTURE_2D, image_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img_w, img_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->w, image->h,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, image->data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -465,8 +470,8 @@ int main(int argc, char **argv) {
         ImVec2 content_region = ImGui::GetContentRegionAvail();
 
         // Compute scale to fit image while preserving aspect ratio
-        float scale = std::min(content_region.x / img_w, content_region.y / img_h);
-        ImVec2 display_size = ImVec2(img_w * scale, img_h * scale);
+        float scale = std::min(content_region.x / image->w, content_region.y / image->h);
+        ImVec2 display_size = ImVec2(image->w * scale, image->h * scale);
 
         // Center the image inside the content region (optional)
         ImVec2 offset = ImVec2(
@@ -550,7 +555,7 @@ int main(int argc, char **argv) {
         if (need_export) {
             need_export = false;
 
-            SaveImage(img_w, img_h, data, shapes);
+            SaveImage(image, shapes);
 
             glfwMakeContextCurrent(window);
             ImGui::SetCurrentContext(imgui_context);
@@ -569,7 +574,7 @@ int main(int argc, char **argv) {
     glfwDestroyWindow(window);
     glfwTerminate();
 
-    free(data);
+    delete image;
 
     return 0;
 }

@@ -15,19 +15,28 @@ static const std::unordered_map<Format, EncoderFunc> encoders = {
     { Format::JPEG, EncodeJPEG },
 };
 
-unsigned char *EncodeImage(Format format, unsigned char *src_data, size_t src_data_size,
-                           uint32_t src_width, uint32_t src_height, size_t *out_size) {
+Image *EncodeImage(Image *src, Format format) {
+    Image *image = nullptr;
     EncoderFunc encoder = nullptr;
+    unsigned char *out_buf = nullptr;
+    size_t out_size = 0;
 
     if (!CheckFormatSupport(format)) {
-        LogPrint(ERR, "Encoder: format %s is not supported", FormatToString(format));
+        LogPrint(ERR, "Encoder: format %s is not supported", FormatToString(src->format));
         return nullptr;
     }
 
     LogPrint(INFO, "Encoder: encoding image of size %dx%d into %s",
-             src_width, src_height, FormatToString(format));
+             src->w, src->h, FormatToString(src->format));
 
     encoder = encoders.find(format)->second;
-    return encoder(src_data, src_data_size, src_width, src_height, out_size);
+    out_buf = encoder(src->data, src->data_size, src->w, src->h, &out_size);
+    if (out_buf == nullptr) {
+        return nullptr;
+    }
+
+    image = new Image(out_buf, out_size, src->w, src->h, format);
+
+    return image;
 }
 

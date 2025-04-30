@@ -12,7 +12,7 @@
 // This uses wl-copy, not because I'm lazy, but because due to the way wayland
 // works clipboard contents will disappear once ssedit is closed.
 // wl-copy forks itself in the background and clipboard will persist.
-bool CopyToClipboard(Format format, const unsigned char *buf, size_t buf_size) {
+bool CopyToClipboard(const Image *image) {
     const char *tmpdir;
     int tmpfile_fd = -1;
 
@@ -26,12 +26,12 @@ bool CopyToClipboard(Format format, const unsigned char *buf, size_t buf_size) {
         LogPrint(ERR, "Clipboard: failed to open temporary file (%s)", strerror(errno));
         goto err;
     }
-    if (ftruncate(tmpfile_fd, buf_size) < 0) {
+    if (ftruncate(tmpfile_fd, image->data_size) < 0) {
         LogPrint(ERR, "Clipboard: failed to truncate temporary file (%s)", strerror(errno));
         goto err;
     }
 
-    if (!WriteToFD(tmpfile_fd, buf, buf_size)) {
+    if (!WriteToFD(tmpfile_fd, image->data, image->data_size)) {
         LogPrint(ERR, "Clipboard: writing clipboard contents to temporary file failed");
         goto err;
     }
@@ -51,7 +51,7 @@ bool CopyToClipboard(Format format, const unsigned char *buf, size_t buf_size) {
             LogPrint(ERR, "Clipboard: failed to redirect stdin (%s)", strerror(errno));
             exit(69);
         }
-        execlp("wl-copy", "wl-copy", "-t", FormatToMIME(format), nullptr);
+        execlp("wl-copy", "wl-copy", "-t", FormatToMIME(image->format), nullptr);
         LogPrint(ERR, "Clipboard: failed to exec into wl-copy (%s)", strerror(errno));
         exit(69);
     default: // Parent

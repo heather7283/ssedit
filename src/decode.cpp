@@ -16,10 +16,11 @@ static const std::unordered_map<Format, DecoderFunc> decoders = {
     { Format::JPEG, DecodeJPEG },
 };
 
-unsigned char *DecodeImage(const unsigned char *data, size_t data_size,
-                           uint32_t *width, uint32_t *height) {
+Image *DecodeImage(const unsigned char *data, size_t data_size) {
+    Image *image = nullptr;
     DecoderFunc decoder = nullptr;
     unsigned char *out = nullptr;
+    uint32_t w = 0, h = 0;
 
     Format format = MatchFormat(data, data_size);
     if (format == Format::INVALID) {
@@ -34,14 +35,16 @@ unsigned char *DecodeImage(const unsigned char *data, size_t data_size,
     }
 
     decoder = decoders.find(format)->second;
-    out = decoder(data, data_size, width, height);
+    out = decoder(data, data_size, &w, &h);
+    if (out == nullptr) {
+        goto err;
+    }
 
-    return out;
+    image = new Image(out, w * h * 4, w, h, Format::RGBA);
+    return image;
 
 err:
-    delete[] out;
-    *width = 0;
-    *height = 0;
+    delete image;
     return nullptr;
 }
 

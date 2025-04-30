@@ -1,2 +1,3 @@
 option('png', description: 'enable png support via libspng', type: 'feature', value: 'auto')
 option('jpeg', description: 'enable jpeg support via libturbojpeg', type: 'feature', value: 'auto')
+option('jpegxl', description: 'enable jxl support via libjxl', type: 'feature', value: 'auto')

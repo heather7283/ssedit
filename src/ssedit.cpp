@@ -203,6 +203,7 @@ void PrintVersionAndExit(int rc) {
         "glfw:         " "%s"                        "\n"
         "libspng:      " SSEDIT_LIBSPNG_VERSION      "\n"
         "libturbojpeg: " SSEDIT_LIBTURBOJPEG_VERSION "\n"
+        "libjxl:       " SSEDIT_LIBJXL_VERSION       "\n"
     ;
 
     printf(version_string, ImGui::GetVersion(), glfwGetVersionString());

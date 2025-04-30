@@ -7,6 +7,7 @@
 
 #include "backends/png.hpp"
 #include "backends/jpeg.hpp"
+#include "backends/jxl.hpp"
 
 typedef unsigned char *(*DecoderFunc)(const unsigned char *data, size_t data_size,
                                       uint32_t *width, uint32_t *height);
@@ -14,6 +15,7 @@ typedef unsigned char *(*DecoderFunc)(const unsigned char *data, size_t data_siz
 static const std::unordered_map<Format, DecoderFunc> decoders = {
     {  Format::PNG,  DecodePNG },
     { Format::JPEG, DecodeJPEG },
+    {  Format::JXL, DecodeJXL },
 };
 
 Image *DecodeImage(const unsigned char *data, size_t data_size) {

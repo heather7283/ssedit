@@ -11,12 +11,15 @@ gl_dep = dependency('gl')
 glew_dep = dependency('glew')
 glfw_dep = dependency('glfw3')
 
+any_format_enabled = false
+
 spng_lib = dependency('spng', required: get_option('png'))
 if spng_lib.found()
   add_project_arguments([
     '-DSSEDIT_HAVE_LIBSPNG',
     '-DSSEDIT_LIBSPNG_VERSION="@0@"'.format(spng_lib.version()),
   ], language: 'cpp')
+  any_format_enabled = true
 endif
 
 turbojpeg_lib = dependency('libturbojpeg', required: get_option('jpeg'))
@@ -25,16 +28,21 @@ if turbojpeg_lib.found()
     '-DSSEDIT_HAVE_LIBTURBOJPEG',
     '-DSSEDIT_LIBTURBOJPEG_VERSION="@0@"'.format(turbojpeg_lib.version()),
   ], language: 'cpp')
+  any_format_enabled = true
 endif
 
-format_libs = [ spng_lib, turbojpeg_lib ]
-any_format_enabled = false
-foreach format_lib: format_libs
-  if format_lib.found()
-    any_format_enabled = true
-    break
-  endif
-endforeach
+jxl_lib = dependency('libjxl', required: get_option('jpegxl'))
+jxl_threads_lib = dependency('libjxl_threads', required: get_option('jpegxl'))
+if jxl_lib.found() and jxl_threads_lib.found()
+  add_project_arguments([
+    '-DSSEDIT_HAVE_LIBJXL',
+    '-DSSEDIT_LIBJXL_VERSION="@0@"'.format(jxl_lib.version()),
+  ], language: 'cpp')
+  any_format_enabled = true
+endif
+
+image_format_libs = [spng_lib, turbojpeg_lib, jxl_lib, jxl_threads_lib]
+
 if not any_format_enabled
   error('You must enable support for at least one image format')
 endif
@@ -70,14 +78,16 @@ ssedit_sources = [
   'src/log.cpp',
   'src/backends/jpeg.cpp',
   'src/backends/png.cpp',
+  'src/backends/jxl.cpp',
 ]
 
 executable('ssedit', ssedit_sources,
            include_directories: include_dirs,
            link_with: [imgui_lib],
-           dependencies: [glfw_dep, gl_dep, glew_dep, spng_lib, turbojpeg_lib],
+           dependencies: [glfw_dep, gl_dep, glew_dep] + image_format_libs,
            install: true)
 
 summary({'PNG': spng_lib.found(),
-         'JPEG': turbojpeg_lib.found()}, section: 'Supported image formats')
+         'JPEG': turbojpeg_lib.found(),
+         'JXL': jxl_lib.found() and jxl_threads_lib.found()}, section: 'Supported image formats')
 

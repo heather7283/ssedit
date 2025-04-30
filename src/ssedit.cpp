@@ -553,6 +553,7 @@ int main(int argc, char **argv) {
             if (encoded_image != nullptr) {
                 CopyToClipboard(encoded_image);
             }
+            delete encoded_image;
 
             glfwMakeContextCurrent(window);
             ImGui::SetCurrentContext(imgui_context);

@@ -13,9 +13,9 @@ typedef unsigned char *(*DecoderFunc)(const unsigned char *data, size_t data_siz
                                       uint32_t *width, uint32_t *height);
 
 static const std::unordered_map<Format, DecoderFunc> decoders = {
-    {  Format::PNG, DecodePNG },
+    {  Format::PNG,  DecodePNG },
     { Format::JPEG, DecodeJPEG },
-    {  Format::JXL, DecodeJXL },
+    {  Format::JXL,  DecodeJXL },
 };
 
 Image *DecodeImage(const unsigned char *data, size_t data_size) {

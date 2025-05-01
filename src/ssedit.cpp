@@ -51,18 +51,22 @@ static const char glsl_version[] = "#version 130";
 std::vector<std::unique_ptr<Shape>> redo_list;
 std::vector<std::unique_ptr<Shape>> shapes;
 
-void Undo(void) {
+bool Undo(void) {
     if (!shapes.empty()) {
         redo_list.push_back(std::move(shapes.back()));
         shapes.pop_back();
+        return true;
     }
+    return false;
 }
 
-void Redo(void) {
+bool Redo(void) {
     if (!redo_list.empty()) {
         shapes.push_back(std::move(redo_list.back()));
         redo_list.pop_back();
+        return true;
     }
+    return false;
 }
 
 static void glfw_error_callback(int error, const char *description) {
@@ -464,9 +468,9 @@ int main(int argc, char **argv) {
         button_count = 3.0f;
         spacing = ImGui::GetStyle().ItemSpacing.x;
         button_width = (available_width - (button_count - 1) * spacing) / button_count;
-        ImGui::Text(" ");
-        if (ImGui::Button(ICON_COPY, ImVec2(button_width, 0))) {
-            need_export = true;
+        ImGui::Text("Clear/Undo/Redo");
+        if (ImGui::Button(ICON_XMARK, ImVec2(button_width, 0))) {
+            while (Undo());
         }
         ImGui::SameLine();
         if (ImGui::Button(ICON_ROTATE_LEFT, ImVec2(button_width, 0))) {
@@ -476,6 +480,13 @@ int main(int argc, char **argv) {
         if (ImGui::Button(ICON_ROTATE_RIGHT, ImVec2(button_width, 0))) {
             Redo();
         }
+
+        ImGui::Text("Copy to clibpoard");
+        available_width = ImGui::GetContentRegionAvail().x;
+        if (ImGui::Button(ICON_COPY, ImVec2(available_width, 0))) {
+            need_export = true;
+        }
+
 
         ImGui::EndChild(); // End of controls panel
 

@@ -9,8 +9,8 @@
 #define ICON_ROTATE_RIGHT "\xef\x8b\xb9"
 #define ICON_ROTATE_LEFT "\xef\x8b\xaa"
 #define ICON_COPY "\xef\x83\x85"
-#define ICON_MINUS "\xef\x81\xa8"
 #define ICON_SLASH "\xef\x9c\x95"
+#define ICON_XMARK "\xef\x80\x8d"
 
 extern void *icons_ttf_start;
 extern void *icons_ttf_end;

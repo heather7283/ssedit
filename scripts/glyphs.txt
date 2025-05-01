@@ -7,3 +7,4 @@ rotate-left
 rotate-right
 minus
 slash
+xmark

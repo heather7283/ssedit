@@ -17,6 +17,7 @@
 #include "encode.hpp"
 #include "clibpoard.hpp"
 #include "features.hpp"
+#include "config.hpp"
 #include "log.hpp"
 
 #define STREQ(a, b) (strcmp((a), (b)) == 0)
@@ -29,20 +30,6 @@ enum Tool {
     RECTANGLE,
     FREEFORM,
     ARROW,
-};
-
-static struct {
-    const char *input_filename;
-    int input_fd;
-    const char *output_filename;
-    int output_fd;
-    Format output_format;
-} config = {
-    .input_filename = nullptr,
-    .input_fd = -1,
-    .output_filename = nullptr,
-    .output_fd = -1,
-    .output_format = Format::PNG,
 };
 
 static const char glsl_version[] = "#version 130";
@@ -123,7 +110,6 @@ Image *GetModifiedPixels(Image *orig_image, const std::vector<std::unique_ptr<Sh
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2(orig_image->w, orig_image->h));
-    ImGui::SetNextWindowBgAlpha(1.f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::Begin("Offscreen Window", nullptr, ImGuiWindowFlags_NoMove
@@ -210,17 +196,29 @@ void PrintVersionAndExit(int rc) {
     exit(rc);
 }
 
-bool ParseCommandLine(int argc, char **argv) {
-    int opt;
+int main(int argc, char **argv) {
+    const char *input_filename = nullptr;
+    int input_fd = -1;
+    const char *output_filename = nullptr;
+    int output_fd = -1;
+    Format output_format = Format::PNG; // TODO: first enabled
+    const char *config_path = nullptr;
 
-    while ((opt = getopt(argc, argv, ":f:Vh")) != -1) {
+    setlocale(LC_ALL, "");
+    LogInit(INFO, stderr);
+
+    int opt;
+    while ((opt = getopt(argc, argv, ":f:c:Vh")) != -1) {
         switch (opt) {
         case 'f':
-            config.output_format = FormatFromString(optarg);
-            if (config.output_format == Format::INVALID) {
+            output_format = FormatFromString(optarg);
+            if (output_format == Format::INVALID) {
                 LogPrint(ERR, "Invalid format: %s", optarg);
-                goto err;
+                return 1;
             }
+            break;
+        case 'c':
+            config_path = optarg;
             break;
         case 'V':
             PrintVersionAndExit(0);
@@ -244,56 +242,44 @@ bool ParseCommandLine(int argc, char **argv) {
     }
 
     if (argv[optind] != nullptr) {
-        config.input_filename = argv[optind++];
+        input_filename = argv[optind++];
     }
     if (argv[optind] != nullptr) {
-        config.output_filename = argv[optind++];
+        output_filename = argv[optind++];
     }
 
-    return true;
-
-err:
-    return false;
-}
-
-int main(int argc, char **argv) {
-    setlocale(LC_ALL, "");
-    LogInit(INFO, stderr);
-
-    if (!ParseCommandLine(argc, argv)) {
-        return 1;
-    };
-
-    if (config.input_filename == nullptr || STREQ(config.input_filename, "-")) {
+    if (input_filename == nullptr || STREQ(input_filename, "-")) {
         if (isatty(STDIN_FILENO)) {
             LogPrint(ERR, "Input file is not specified and stdin is a TTY");
             return 1;
         }
-        config.input_fd = STDIN_FILENO;
+        input_fd = STDIN_FILENO;
     } else {
-        config.input_fd = open(config.input_filename, O_RDONLY | O_CLOEXEC);
-        if (config.input_fd < 0) {
+        input_fd = open(input_filename, O_RDONLY | O_CLOEXEC);
+        if (input_fd < 0) {
             LogPrint(ERR, "Failed to open input file %s (%s)",
-                     config.input_filename, strerror(errno));
+                     input_filename, strerror(errno));
             return 1;
         }
     }
-    if (config.output_filename == nullptr || STREQ(config.output_filename, "-")) {
+    if (output_filename == nullptr || STREQ(output_filename, "-")) {
         if (isatty(STDOUT_FILENO)) {
             LogPrint(ERR, "Output file is not specified and stdout is a TTY");
             return 1;
         }
-        config.output_fd = STDOUT_FILENO;
+        output_fd = STDOUT_FILENO;
     } else {
-        config.output_fd = open(config.output_filename,
-                                O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC,
-                                S_IWUSR | S_IWGRP | S_IRUSR | S_IRGRP);
-        if (config.output_fd < 0) {
+        output_fd = open(output_filename,
+                         O_WRONLY | O_TRUNC | O_CREAT | O_CLOEXEC,
+                         S_IWUSR | S_IWGRP | S_IRUSR | S_IRGRP);
+        if (output_fd < 0) {
             LogPrint(ERR, "Failed to open output file %s (%s)",
-                     config.output_filename, strerror(errno));
+                     output_filename, strerror(errno));
             return 1;
         }
     }
+
+    LoadConfig(config_path);
 
     glfwSetErrorCallback(glfw_error_callback);
     glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_DISABLE_LIBDECOR);
@@ -331,24 +317,29 @@ int main(int argc, char **argv) {
     ImGuiContext *imgui_context = ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.IniFilename = nullptr; // disable automatic .ini file saving
+    ImGuiStyle &style = ImGui::GetStyle();
+    style.Colors[ImGuiCol_WindowBg] = config.bg_color;
+    //style.Colors[ImGuiCol_Text] = config.text_color;
+    //style.Colors[ImGuiCol_Button] = config.accent_color;
+    //style.Colors[ImGuiCol_ButtonActive] = config.accent_color;
+    //style.Colors[ImGuiCol_ButtonHovered] = config.accent_color;
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    // Load Fonts (TODO: make configurable)
-    const char font[] = "/usr/share/fonts/nerdfonts/JetBrainsMonoNLNerdFont-Medium.ttf";
+    // Load Fonts (TODO: make rable)
     const ImWchar font_ranges[] = {     32,    126, // ASCII
                                     0xed00, 0xf2ff,
                                     0x25a0, 0x25cf, 0 };
-    io.Fonts->AddFontFromFileTTF(font, 19.f, nullptr, font_ranges);
+    io.Fonts->AddFontFromFileTTF(config.font_path, config.font_size, nullptr, font_ranges);
 
     size_t data_size;
-    unsigned char *raw_data = ReadFromFD(config.input_fd, &data_size);
+    unsigned char *raw_data = ReadFromFD(input_fd, &data_size);
     if (raw_data == NULL) {
         return 1;
     }
-    close(config.input_fd);
+    close(input_fd);
 
     Image *orig_image = DecodeImage(raw_data, data_size);
     if (orig_image == nullptr) {
@@ -408,7 +399,7 @@ int main(int argc, char **argv) {
         ImGui::Text("Tool");
         float available_width = ImGui::GetContentRegionAvail().x;
         float button_count = 5.0f;
-        float spacing = ImGui::GetStyle().ItemSpacing.x;
+        float spacing = style.ItemSpacing.x;
         float button_width = (available_width - (button_count - 1) * spacing) / button_count;
         if (ButtonConditional("", active_tool == FREEFORM, ImVec2(button_width, 0))) {
             active_tool = FREEFORM;
@@ -437,7 +428,7 @@ int main(int argc, char **argv) {
         ImGui::SameLine();
         available_width = ImGui::GetContentRegionAvail().x;
         button_count = 2.0f;
-        spacing = ImGui::GetStyle().ItemSpacing.x;
+        spacing = style.ItemSpacing.x;
         button_width = (available_width - (button_count - 1) * spacing) / button_count;
         if (ImGui::Button("Undo", ImVec2(button_width, 0))) {
             if (!shapes.empty()) {
@@ -548,7 +539,7 @@ int main(int argc, char **argv) {
 
             Image *raw_image = GetModifiedPixels(orig_image, shapes);
 
-            Image *encoded_image = EncodeImage(raw_image, config.output_format);
+            Image *encoded_image = EncodeImage(raw_image, output_format);
             delete raw_image;
 
             if (encoded_image != nullptr) {
@@ -578,11 +569,11 @@ int main(int argc, char **argv) {
     glfwDestroyWindow(window);
     glfwTerminate();
 
-    Image *encoded_final_image = EncodeImage(final_image, config.output_format);
+    Image *encoded_final_image = EncodeImage(final_image, output_format);
     delete final_image;
 
     if (encoded_final_image != nullptr) {
-        WriteToFD(config.output_fd, encoded_final_image->data, encoded_final_image->data_size);
+        WriteToFD(output_fd, encoded_final_image->data, encoded_final_image->data_size);
     }
     delete encoded_final_image;
 

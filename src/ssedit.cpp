@@ -279,8 +279,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    LoadConfig(config_path);
-
     glfwSetErrorCallback(glfw_error_callback);
     glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_DISABLE_LIBDECOR);
     if (glfwInit() != GLFW_TRUE) {
@@ -318,12 +316,8 @@ int main(int argc, char **argv) {
     ImGuiIO &io = ImGui::GetIO();
     io.IniFilename = nullptr; // disable automatic .ini file saving
     ImGuiStyle &style = ImGui::GetStyle();
-    style.Colors[ImGuiCol_WindowBg] = config.colors.bg;
-    style.Colors[ImGuiCol_PopupBg] = config.colors.popup_bg;
-    style.Colors[ImGuiCol_Text] = config.colors.text;
-    //style.Colors[ImGuiCol_Button] = config.accent_color;
-    //style.Colors[ImGuiCol_ButtonActive] = config.accent_color;
-    //style.Colors[ImGuiCol_ButtonHovered] = config.accent_color;
+
+    LoadConfig(config_path, &style);
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);

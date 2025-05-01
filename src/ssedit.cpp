@@ -17,6 +17,7 @@
 #include "encode.hpp"
 #include "clibpoard.hpp"
 #include "features.hpp"
+#include "icons.hpp"
 #include "log.hpp"
 
 #define STREQ(a, b) (strcmp((a), (b)) == 0)
@@ -364,9 +365,16 @@ int main(int argc, char **argv) {
     // Load Fonts (TODO: make configurable)
     const char font[] = "/usr/share/fonts/nerdfonts/JetBrainsMonoNLNerdFont-Medium.ttf";
     const ImWchar font_ranges[] = {     32,    126, // ASCII
-                                    0xed00, 0xf2ff,
-                                    0x25a0, 0x25cf, 0 };
+                                                 0 };
     io.Fonts->AddFontFromFileTTF(font, 19.f, nullptr, font_ranges);
+
+    ImFontConfig font_config;
+    font_config.FontDataOwnedByAtlas = false;
+    font_config.MergeMode = true;
+    font_config.GlyphOffset = ImVec2(0, 1);
+    const ImWchar icon_ranges[] = { 0xe005, 0xf8ff, 0 };
+    io.Fonts->AddFontFromMemoryTTF(icons_ttf_start, icons_ttf_size,
+                                   19.f, &font_config, icon_ranges);
 
     size_t data_size;
     unsigned char *raw_data = ReadFromFD(config.input_fd, &data_size);
@@ -432,40 +440,40 @@ int main(int argc, char **argv) {
         float button_count = 5.0f;
         float spacing = ImGui::GetStyle().ItemSpacing.x;
         float button_width = (available_width - (button_count - 1) * spacing) / button_count;
-        if (ButtonConditional("", active_tool == FREEFORM, ImVec2(button_width, 0))) {
+        if (ButtonConditional(ICON_PAINTBRUSH, active_tool == FREEFORM, ImVec2(button_width, 0))) {
             active_tool = FREEFORM;
         }
         ImGui::SameLine();
-        if (ButtonConditional("|", active_tool == LINE, ImVec2(button_width, 0))) {
+        if (ButtonConditional(ICON_SLASH, active_tool == LINE, ImVec2(button_width, 0))) {
             active_tool = LINE;
         }
         ImGui::SameLine();
-        if (ButtonConditional("●", active_tool == CIRCLE, ImVec2(button_width, 0))) {
+        if (ButtonConditional(ICON_CIRCLE, active_tool == CIRCLE, ImVec2(button_width, 0))) {
             active_tool = CIRCLE;
         }
         ImGui::SameLine();
-        if (ButtonConditional("■", active_tool == RECTANGLE, ImVec2(button_width, 0))) {
+        if (ButtonConditional(ICON_SQUARE, active_tool == RECTANGLE, ImVec2(button_width, 0))) {
             active_tool = RECTANGLE;
         }
         ImGui::SameLine();
-        if (ButtonConditional("", active_tool == ARROW, ImVec2(button_width, 0))) {
+        if (ButtonConditional(ICON_ARROW_RIGHT, active_tool == ARROW, ImVec2(button_width, 0))) {
             active_tool = ARROW;
         }
 
+        available_width = ImGui::GetContentRegionAvail().x;
+        button_count = 3.0f;
+        spacing = ImGui::GetStyle().ItemSpacing.x;
+        button_width = (available_width - (button_count - 1) * spacing) / button_count;
         ImGui::Text(" ");
-        if (ImGui::Button("Copy to clipboard")) {
+        if (ImGui::Button(ICON_COPY, ImVec2(button_width, 0))) {
             need_export = true;
         }
         ImGui::SameLine();
-        available_width = ImGui::GetContentRegionAvail().x;
-        button_count = 2.0f;
-        spacing = ImGui::GetStyle().ItemSpacing.x;
-        button_width = (available_width - (button_count - 1) * spacing) / button_count;
-        if (ImGui::Button("Undo", ImVec2(button_width, 0))) {
+        if (ImGui::Button(ICON_ROTATE_LEFT, ImVec2(button_width, 0))) {
             Undo();
         }
         ImGui::SameLine();
-        if (ImGui::Button("Redo", ImVec2(button_width, 0))) {
+        if (ImGui::Button(ICON_ROTATE_RIGHT, ImVec2(button_width, 0))) {
             Redo();
         }
 

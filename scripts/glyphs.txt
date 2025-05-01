@@ -1,0 +1,9 @@
+paintbrush
+square
+circle
+arrow-right
+copy
+rotate-left
+rotate-right
+minus
+slash

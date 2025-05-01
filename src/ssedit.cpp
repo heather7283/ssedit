@@ -412,13 +412,6 @@ int main(int argc, char **argv) {
     ImVec2 drawing_start_pos = ImVec2(0, 0);
     std::unique_ptr<Shape> drawing_shape = NULL;
 
-    const float controls_window_width = 300.0f;
-    ImVec2 spacing = style.ItemSpacing;
-    ImVec2 controls_win_pos = spacing;
-    ImVec2 controls_win_size = ImVec2(controls_window_width, 0);
-    ImVec2 canvas_win_pos = ImVec2(spacing.x * 2 + controls_window_width, spacing.y);
-    ImVec2 canvas_win_size; // Needs to be updated every frame
-
     while (!glfwWindowShouldClose(window)) {
         // Poll and handle events (inputs, window resize, etc.)
         glfwPollEvents();
@@ -428,18 +421,21 @@ int main(int argc, char **argv) {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImVec2 viewport_size = io.DisplaySize;
-        canvas_win_size = ImVec2(viewport_size.x - canvas_win_pos.x - spacing.x, 0);
-
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(viewport_size);
+        ImGui::SetNextWindowSize(io.DisplaySize);
         ImGui::Begin("ssedit", nullptr, ImGuiWindowFlags_NoMove
                                         | ImGuiWindowFlags_NoDecoration
                                         | ImGuiWindowFlags_NoSavedSettings);
 
+
+        // Control pane on the left
+        ImGui::BeginChild("Controls", ImVec2(300, 0), true);
+        // Save it for later: https://github.com/ocornut/imgui/wiki/Tips#using-beginbeginchild
+        ImGui::EndChild();
+
         // Image area
-        ImGui::SetNextWindowPos(canvas_win_pos);
-        ImGui::BeginChild("Canvas", canvas_win_size);
+        ImGui::SameLine();
+        ImGui::BeginChild("Canvas");
 
         ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
         ImVec2 canvas_size = ImGui::GetWindowSize();
@@ -448,7 +444,7 @@ int main(int argc, char **argv) {
         float image_scale = std::min(canvas_size.x / orig_image->w, canvas_size.y / orig_image->h);
         ImVec2 image_size = ImVec2(orig_image->w * image_scale, orig_image->h * image_scale);
 
-        // Center the image inside the content region
+        // Center the image inside the canvas region
         ImVec2 image_offset = (canvas_size - image_size) * 0.5f;
         ImVec2 image_pos = canvas_pos + image_offset;
 
@@ -514,13 +510,11 @@ int main(int argc, char **argv) {
             }
         }
 
-        ImGui::EndChild(); // End of image area
+        ImGui::EndChild();
+        // End of image area
 
-        ImGui::SameLine();
-
-        // Create a left panel for controls
-        ImGui::SetNextWindowPos(controls_win_pos);
-        ImGui::BeginChild("Controls", controls_win_size, true);
+        // Return to the control pane context and draw it
+        ImGui::BeginChild("Controls");
 
         ImGui::Text("Color");
         ImGui::SetNextItemWidth(-1);
@@ -580,7 +574,8 @@ int main(int argc, char **argv) {
             need_export = true;
         }
 
-        ImGui::EndChild(); // End of controls panel
+        ImGui::EndChild();
+        // Leave control panel context
 
         ImGui::End();
 

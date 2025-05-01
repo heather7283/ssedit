@@ -19,6 +19,7 @@ grim - | ssedit | wl-copy
 ssedit is licensed under GNU GPL version 3 or later.
 ImGui is licensed under the MIT license.
 Font Awesome is licensed under the SIL OFL 1.1 license.
+inih is licensed under the New BSD license.
 
 ## References
 - https://github.com/jtheoof/swappy
@@ -31,5 +32,6 @@ Font Awesome is licensed under the SIL OFL 1.1 license.
 - https://fontawesome.com
 - https://fontforge.org/docs/scripting/scripting.html
 - https://www.linuxjournal.com/content/embedding-file-executable-aka-hello-world-version-5967
+- https://github.com/benhoyt/inih
 
 [Dear ImGui]: https://github.com/ocornut/imgui

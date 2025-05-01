@@ -1,4 +1,4 @@
-project('ssedit', 'cpp',
+project('ssedit', ['c', 'cpp'],
         version: '0.0.1',
         license: 'GPL-3.0-or-later',
         meson_version: '>=1.1',
@@ -56,6 +56,7 @@ include_dirs = [
   'thirdparty',
   'thirdparty/imgui',
   'thirdparty/imgui/backends',
+  'thirdparty/inih',
   'src'
 ]
 
@@ -70,6 +71,8 @@ imgui_sources = [
 
 add_project_arguments('-DIMGUI_DEFINE_MATH_OPERATORS', language: 'cpp')
 imgui_lib = static_library('imgui', imgui_sources, include_directories: include_dirs)
+
+inih_lib = static_library('inih', 'thirdparty/inih/ini.c', include_directories: include_dirs)
 
 fontforge = find_program('fontforge')
 icons_ttf = custom_target('icons.ttf',
@@ -98,6 +101,7 @@ ssedit_sources = [
   'src/clipboard.cpp',
   'src/image.cpp',
   'src/icons.cpp',
+  'src/config.cpp',
   'src/log.cpp',
   'src/backends/jpeg.cpp',
   'src/backends/png.cpp',
@@ -106,7 +110,7 @@ ssedit_sources = [
 
 executable('ssedit', ssedit_sources + icons_obj,
            include_directories: include_dirs,
-           link_with: [imgui_lib],
+           link_with: [imgui_lib, inih_lib],
            dependencies: [glfw_dep, gl_dep, glew_dep] + image_format_libs,
            install: true)
 

@@ -24,7 +24,7 @@ private:
 
 class Circle: public Shape {
 public:
-    Circle(ImVec2 center, ImU32 color, float thickness);
+    Circle(ImVec2 center, ImU32 color, float thickness, bool fill);
     void Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const override;
     void Update(ImVec2 pos) override;
 private:
@@ -32,11 +32,12 @@ private:
     float radius;
     ImU32 color;
     float thickness;
+    bool fill;
 };
 
 class Rectangle: public Shape {
 public:
-    Rectangle(ImVec2 top_left, ImU32 color, float thickness);
+    Rectangle(ImVec2 top_left, ImU32 color, float thickness, bool fill);
     void Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const override;
     void Update(ImVec2 pos) override;
 private:
@@ -44,6 +45,7 @@ private:
     ImVec2 end;
     ImU32 color;
     float thickness;
+    bool fill;
 };
 
 class Freeform: public Shape {

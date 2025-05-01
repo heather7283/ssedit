@@ -406,6 +406,7 @@ int main(int argc, char **argv) {
     Tool active_tool = FREEFORM;
     float thickness = 2.0f;
     ImVec4 color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+    bool fill = false;
 
     bool drawing_active = false;
     ImVec2 drawing_start_pos = ImVec2(0, 0);
@@ -462,6 +463,8 @@ int main(int argc, char **argv) {
         if (ButtonConditional(ICON_ARROW_RIGHT, active_tool == ARROW, ImVec2(button_width, 0))) {
             active_tool = ARROW;
         }
+
+        ImGui::Checkbox("Fill", &fill);
 
         available_width = ImGui::GetContentRegionAvail().x;
         button_count = 3.0f;
@@ -534,12 +537,12 @@ int main(int argc, char **argv) {
                 case CIRCLE:
                     drawing_shape = std::make_unique<Circle>(drawing_start_pos,
                                                              IMVEC4_TO_COL32(color),
-                                                             thickness);
+                                                             thickness, fill);
                     break;
                 case RECTANGLE:
                     drawing_shape = std::make_unique<Rectangle>(drawing_start_pos,
                                                                 IMVEC4_TO_COL32(color),
-                                                                thickness);
+                                                                thickness, fill);
                     break;
                 case FREEFORM:
                     drawing_shape = std::make_unique<Freeform>(drawing_start_pos,

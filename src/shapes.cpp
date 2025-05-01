@@ -19,16 +19,22 @@ void Line::Update(ImVec2 pos) {
     this->end = pos;
 }
 
-Circle::Circle(ImVec2 center, ImU32 color, float thickness) {
+Circle::Circle(ImVec2 center, ImU32 color, float thickness, bool fill) {
     this->center = center;
     this->radius = 0;
     this->color = color;
     this->thickness = thickness;
+    this->fill = fill;
 }
 
 void Circle::Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const {
-    draw_list->AddCircle(offset + this->center * scale, this->radius * scale,
-                         this->color, 0, this->thickness * scale);
+    if (this->fill) {
+        draw_list->AddCircleFilled(offset + this->center * scale, this->radius * scale,
+                                   this->color, 0);
+    } else {
+        draw_list->AddCircle(offset + this->center * scale, this->radius * scale,
+                             this->color, 0, this->thickness * scale);
+    }
 }
 
 void Circle::Update(ImVec2 pos) {
@@ -36,16 +42,22 @@ void Circle::Update(ImVec2 pos) {
     this->radius = sqrt((d.x * d.x) + (d.y * d.y));
 }
 
-Rectangle::Rectangle(ImVec2 start, ImU32 color, float thickness) {
+Rectangle::Rectangle(ImVec2 start, ImU32 color, float thickness, bool fill) {
     this->start = start;
     this->end = start;
     this->color = color;
     this->thickness = thickness;
+    this->fill = fill;
 }
 
 void Rectangle::Draw(ImDrawList *draw_list, ImVec2 offset, float scale) const {
-    draw_list->AddRect(offset + this->start * scale, offset + this->end * scale,
-                       this->color, 0.0f, 0, this->thickness * scale);
+    if (this->fill) {
+        draw_list->AddRectFilled(offset + this->start * scale, offset + this->end * scale,
+                                 this->color, 0.0f, 0);
+    } else {
+        draw_list->AddRect(offset + this->start * scale, offset + this->end * scale,
+                           this->color, 0.0f, 0, this->thickness * scale);
+    }
 }
 
 void Rectangle::Update(ImVec2 pos) {

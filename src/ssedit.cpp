@@ -47,6 +47,23 @@ static struct {
 
 static const char glsl_version[] = "#version 130";
 
+std::vector<std::unique_ptr<Shape>> redo_list;
+std::vector<std::unique_ptr<Shape>> shapes;
+
+void Undo(void) {
+    if (!shapes.empty()) {
+        redo_list.push_back(std::move(shapes.back()));
+        shapes.pop_back();
+    }
+}
+
+void Redo(void) {
+    if (!redo_list.empty()) {
+        shapes.push_back(std::move(redo_list.back()));
+        redo_list.pop_back();
+    }
+}
+
 static void glfw_error_callback(int error, const char *description) {
     LogPrint(ERR, "GLFW error %d: %s", error, description);
 }
@@ -56,24 +73,32 @@ static void glfw_char_callback(GLFWwindow *window, uint32_t codepoint) {
 }
 
 static void glfw_key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    bool ctrl_pressed = (mods & GLFW_MOD_CONTROL) || (mods & GLFW_MOD_SUPER);
+    if (action != GLFW_PRESS) {
+        return;
+    }
 
-    if (ctrl_pressed && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-        switch (key) {
-        case GLFW_KEY_C:
-            LogPrint(INFO, "GLFW key: Ctrl+C pressed");
-            break;
-        case GLFW_KEY_V:
-            LogPrint(INFO, "GLFW key: Ctrl+V pressed");
-            break;
-        case GLFW_KEY_Z:
-            LogPrint(INFO, "GLFW key: Ctrl+Z pressed");
-            break;
+    bool ctrl = mods & GLFW_MOD_CONTROL;
+    bool shift = mods & GLFW_MOD_SHIFT;
+
+    switch (key) {
+    case GLFW_KEY_C:
+        LogPrint(INFO, "GLFW key: Ctrl+C pressed");
+        break;
+    case GLFW_KEY_V:
+        LogPrint(INFO, "GLFW key: Ctrl+V pressed");
+        break;
+    case GLFW_KEY_Z:
+        LogPrint(INFO, "GLFW key: %s%sZ pressed", ctrl ? "Ctrl" : "", shift ? "Shift" : "");
+        if (ctrl && shift) {
+            Redo();
+        } else if (ctrl) {
+            Undo();
         }
+        break;
     }
 }
 
-Image *GetModifiedPixels(Image *orig_image, const std::vector<std::unique_ptr<Shape>> &shapes) {
+Image *GetModifiedPixels(Image *orig_image) {
     Image *raw_image;
     unsigned char *pixels_buf = nullptr;
 
@@ -375,9 +400,6 @@ int main(int argc, char **argv) {
     ImVec2 drawing_start_pos = ImVec2(0, 0);
     std::unique_ptr<Shape> drawing_shape = NULL;
 
-    std::vector<std::unique_ptr<Shape>> redo_list;
-    std::vector<std::unique_ptr<Shape>> shapes;
-
     while (!glfwWindowShouldClose(window)) {
         // Poll and handle events (inputs, window resize, etc.)
         glfwPollEvents();
@@ -440,17 +462,11 @@ int main(int argc, char **argv) {
         spacing = ImGui::GetStyle().ItemSpacing.x;
         button_width = (available_width - (button_count - 1) * spacing) / button_count;
         if (ImGui::Button("Undo", ImVec2(button_width, 0))) {
-            if (!shapes.empty()) {
-                redo_list.push_back(std::move(shapes.back()));
-                shapes.pop_back();
-            }
+            Undo();
         }
         ImGui::SameLine();
         if (ImGui::Button("Redo", ImVec2(button_width, 0))) {
-            if (!redo_list.empty()) {
-                shapes.push_back(std::move(redo_list.back()));
-                redo_list.pop_back();
-            }
+            Redo();
         }
 
         ImGui::EndChild(); // End of controls panel
@@ -546,7 +562,7 @@ int main(int argc, char **argv) {
         if (need_export) {
             need_export = false;
 
-            Image *raw_image = GetModifiedPixels(orig_image, shapes);
+            Image *raw_image = GetModifiedPixels(orig_image);
 
             Image *encoded_image = EncodeImage(raw_image, config.output_format);
             delete raw_image;
@@ -561,7 +577,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    Image *final_image = GetModifiedPixels(orig_image, shapes);
+    Image *final_image = GetModifiedPixels(orig_image);
     delete orig_image;
 
     // Cleanup

@@ -329,10 +329,18 @@ int main(int argc, char **argv) {
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     // Load Fonts (TODO: make rable)
-    const ImWchar font_ranges[] = {     32,    126, // ASCII
-                                    0xed00, 0xf2ff,
-                                    0x25a0, 0x25cf, 0 };
-    io.Fonts->AddFontFromFileTTF(config.font_path, config.font_size, nullptr, font_ranges);
+    ImVector<ImWchar> font_ranges;
+    ImFontGlyphRangesBuilder font_ranges_builder;
+    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
+    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesJapanese());
+    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesChineseFull());
+    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());
+    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesKorean());
+    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesGreek());
+    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesThai());
+    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesVietnamese());
+    font_ranges_builder.BuildRanges(&font_ranges);
+    io.Fonts->AddFontFromFileTTF(config.font_path, config.font_size, nullptr, font_ranges.Data);
 
     size_t data_size;
     unsigned char *raw_data = ReadFromFD(input_fd, &data_size);

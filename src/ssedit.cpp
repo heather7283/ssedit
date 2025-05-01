@@ -412,6 +412,13 @@ int main(int argc, char **argv) {
     ImVec2 drawing_start_pos = ImVec2(0, 0);
     std::unique_ptr<Shape> drawing_shape = NULL;
 
+    const float controls_window_width = 300.0f;
+    ImVec2 spacing = style.ItemSpacing;
+    ImVec2 controls_win_pos = spacing;
+    ImVec2 controls_win_size = ImVec2(controls_window_width, 0);
+    ImVec2 canvas_win_pos = ImVec2(spacing.x * 2 + controls_window_width, spacing.y);
+    ImVec2 canvas_win_size; // Needs to be updated every frame
+
     while (!glfwWindowShouldClose(window)) {
         // Poll and handle events (inputs, window resize, etc.)
         glfwPollEvents();
@@ -421,15 +428,99 @@ int main(int argc, char **argv) {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        ImVec2 viewport_size = io.DisplaySize;
+        canvas_win_size = ImVec2(viewport_size.x - canvas_win_pos.x - spacing.x, 0);
+
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-        ImGui::Begin("ssedit", nullptr,
-                     ImGuiWindowFlags_NoMove |
-                     ImGuiWindowFlags_NoDecoration |
-                     ImGuiWindowFlags_NoSavedSettings);
+        ImGui::SetNextWindowSize(viewport_size);
+        ImGui::Begin("ssedit", nullptr, ImGuiWindowFlags_NoMove
+                                        | ImGuiWindowFlags_NoDecoration
+                                        | ImGuiWindowFlags_NoSavedSettings);
+
+        // Image area
+        ImGui::SetNextWindowPos(canvas_win_pos);
+        ImGui::BeginChild("Canvas", canvas_win_size);
+
+        ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
+        ImVec2 canvas_size = ImGui::GetWindowSize();
+
+        // Compute scale to fit image while preserving aspect ratio
+        float image_scale = std::min(canvas_size.x / orig_image->w, canvas_size.y / orig_image->h);
+        ImVec2 image_size = ImVec2(orig_image->w * image_scale, orig_image->h * image_scale);
+
+        // Center the image inside the content region
+        ImVec2 image_offset = (canvas_size - image_size) * 0.5f;
+        ImVec2 image_pos = canvas_pos + image_offset;
+
+        ImGui::SetCursorScreenPos(image_pos);
+        ImGui::Image((uintptr_t)image_texture, image_size);
+
+        ImDrawList *draw_list = ImGui::GetWindowDrawList();
+
+        for (const auto &shape: shapes) {
+            shape->Draw(draw_list, image_pos, image_scale);
+        }
+        if (drawing_shape) {
+            drawing_shape->Draw(draw_list, image_pos, image_scale);
+        }
+
+        if (ImGui::IsItemHovered()) {
+            // Convert to image space
+            ImVec2 mouse_pos = ImGui::GetIO().MousePos;
+            ImVec2 local_mouse_pos = (mouse_pos - image_pos) * (1.0f / image_scale);
+
+            if (ImGui::IsMouseClicked(0) && !drawing_active) {
+                drawing_active = true;
+                drawing_start_pos = local_mouse_pos;
+
+                switch (active_tool) {
+                case LINE:
+                    drawing_shape = std::make_unique<Line>(drawing_start_pos,
+                                                           IMVEC4_TO_COL32(color),
+                                                           thickness);
+                    break;
+                case CIRCLE:
+                    drawing_shape = std::make_unique<Circle>(drawing_start_pos,
+                                                             IMVEC4_TO_COL32(color),
+                                                             thickness, fill);
+                    break;
+                case RECTANGLE:
+                    drawing_shape = std::make_unique<Rectangle>(drawing_start_pos,
+                                                                IMVEC4_TO_COL32(color),
+                                                                thickness, fill);
+                    break;
+                case FREEFORM:
+                    drawing_shape = std::make_unique<Freeform>(drawing_start_pos,
+                                                               IMVEC4_TO_COL32(color),
+                                                               thickness);
+                    break;
+                case ARROW:
+                    drawing_shape = std::make_unique<Arrow>(drawing_start_pos,
+                                                            IMVEC4_TO_COL32(color),
+                                                            thickness);
+                    break;
+                }
+            } else if (drawing_active) {
+                drawing_shape->Update(local_mouse_pos);
+
+                if (ImGui::IsMouseReleased(0)) {
+                    shapes.push_back(std::move(drawing_shape));
+                    redo_list.clear();
+
+                    drawing_shape.reset();
+                    drawing_active = false;
+                    drawing_start_pos = ImVec2(0, 0);
+                }
+            }
+        }
+
+        ImGui::EndChild(); // End of image area
+
+        ImGui::SameLine();
 
         // Create a left panel for controls
-        ImGui::BeginChild("Controls", ImVec2(300, 0), true);
+        ImGui::SetNextWindowPos(controls_win_pos);
+        ImGui::BeginChild("Controls", controls_win_size, true);
 
         ImGui::Text("Color");
         ImGui::SetNextItemWidth(-1);
@@ -489,85 +580,7 @@ int main(int argc, char **argv) {
             need_export = true;
         }
 
-
         ImGui::EndChild(); // End of controls panel
-
-        // Image area - takes up remaining space
-        ImGui::SameLine();
-        ImVec2 canvas_pos = ImGui::GetCursorScreenPos();
-        ImVec2 content_region = ImGui::GetContentRegionAvail();
-
-        // Compute scale to fit image while preserving aspect ratio
-        float scale = std::min(content_region.x / orig_image->w, content_region.y / orig_image->h);
-        ImVec2 display_size = ImVec2(orig_image->w * scale, orig_image->h * scale);
-
-        // Center the image inside the content region (optional)
-        ImVec2 offset = ImVec2(
-            (content_region.x - display_size.x) * 0.5f,
-            (content_region.y - display_size.y) * 0.5f
-        );
-        ImVec2 draw_pos = canvas_pos + offset;
-
-        ImGui::SetCursorScreenPos(draw_pos);
-        ImGui::Image((intptr_t)image_texture, display_size);
-
-        ImDrawList *draw_list = ImGui::GetWindowDrawList();
-
-        for (const auto &shape: shapes) {
-            shape->Draw(draw_list, draw_pos, scale);
-        }
-        if (drawing_shape) {
-            drawing_shape->Draw(draw_list, draw_pos, scale);
-        }
-
-        if (ImGui::IsItemHovered()) {
-            ImVec2 mouse = ImGui::GetIO().MousePos;
-            ImVec2 local_mouse = (mouse - draw_pos) * (1.0f / scale);  // convert to image space
-
-            if (ImGui::IsMouseClicked(0) && !drawing_active) {
-                drawing_active = true;
-                drawing_start_pos = local_mouse;
-
-                switch (active_tool) {
-                case LINE:
-                    drawing_shape = std::make_unique<Line>(drawing_start_pos,
-                                                           IMVEC4_TO_COL32(color),
-                                                           thickness);
-                    break;
-                case CIRCLE:
-                    drawing_shape = std::make_unique<Circle>(drawing_start_pos,
-                                                             IMVEC4_TO_COL32(color),
-                                                             thickness, fill);
-                    break;
-                case RECTANGLE:
-                    drawing_shape = std::make_unique<Rectangle>(drawing_start_pos,
-                                                                IMVEC4_TO_COL32(color),
-                                                                thickness, fill);
-                    break;
-                case FREEFORM:
-                    drawing_shape = std::make_unique<Freeform>(drawing_start_pos,
-                                                               IMVEC4_TO_COL32(color),
-                                                               thickness);
-                    break;
-                case ARROW:
-                    drawing_shape = std::make_unique<Arrow>(drawing_start_pos,
-                                                            IMVEC4_TO_COL32(color),
-                                                            thickness);
-                    break;
-                }
-            } else if (drawing_active) {
-                drawing_shape->Update(local_mouse);
-
-                if (ImGui::IsMouseReleased(0)) {
-                    shapes.push_back(std::move(drawing_shape));
-                    redo_list.clear();
-
-                    drawing_shape.reset();
-                    drawing_active = false;
-                    drawing_start_pos = ImVec2(0, 0);
-                }
-            }
-        }
 
         ImGui::End();
 

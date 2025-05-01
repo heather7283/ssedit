@@ -18,6 +18,7 @@ grim - | ssedit | wl-copy
 ## License
 ssedit is licensed under GNU GPL version 3 or later.
 ImGui is licensed under MIT.
+inih is licensed under the New BSD license.
 
 ## References
 - https://github.com/jtheoof/swappy
@@ -27,5 +28,6 @@ ImGui is licensed under MIT.
 - https://libspng.org/docs/
 - https://libjpeg-turbo.org/Documentation/Documentation
 - https://github.com/libjxl/libjxl/tree/main/examples
+- https://github.com/benhoyt/inih
 
 [Dear ImGui]: https://github.com/ocornut/imgui

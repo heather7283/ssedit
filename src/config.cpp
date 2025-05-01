@@ -75,11 +75,13 @@ static int ConfigHandler(void *data, const char *section, const char *name, cons
     #define MATCH(s, n) ((strcmp(section, s) == 0) && (strcmp(name, n) == 0))
 
     if (MATCH("colors", "background")) {
-        HexStringToVec(value, &config.bg_color);
+        HexStringToVec(value, &config.colors.bg);
+    } else if (MATCH("colors", "popup-background")) {
+        HexStringToVec(value, &config.colors.popup_bg);
     } else if (MATCH("colors", "accent")) {
-        HexStringToVec(value, &config.accent_color);
+        HexStringToVec(value, &config.colors.accent);
     } else if (MATCH("colors", "text")) {
-        HexStringToVec(value, &config.text_color);
+        HexStringToVec(value, &config.colors.text);
     } else if (MATCH("main", "font-size")) {
         StringToFloat(value, &config.font_size);
     } else if (MATCH("main", "font-file")) {

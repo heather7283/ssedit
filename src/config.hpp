@@ -12,8 +12,8 @@ struct Config {
         ImVec4 accent = RGBA_TO_IMVEC4(0xA7, 0xC0, 0x80, 0xFF);
         ImVec4 text = RGBA_TO_IMVEC4(0xD3, 0xC6, 0xAA, 0xFF);
     } colors;
-    float font_size = 20.0f;
-    const char *font_path = "/usr/share/fonts/nerdfonts/JetBrainsMonoNLNerdFont-Medium.ttf";
+    float font_size = 18.0f;
+    const char *font_path = nullptr;
 };
 
 extern struct Config config;

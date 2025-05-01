@@ -329,19 +329,23 @@ int main(int argc, char **argv) {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    // Load Fonts (TODO: make rable)
+    // Load fonts
     ImVector<ImWchar> font_ranges;
     ImFontGlyphRangesBuilder font_ranges_builder;
-    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
-    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesJapanese());
-    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesChineseFull());
-    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());
-    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesKorean());
-    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesGreek());
-    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesThai());
-    font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesVietnamese());
-    font_ranges_builder.BuildRanges(&font_ranges);
-    io.Fonts->AddFontFromFileTTF(config.font_path, config.font_size, nullptr, font_ranges.Data);
+    if (config.font_path != nullptr) {
+        font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
+        font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesJapanese());
+        font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesChineseFull());
+        font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());
+        font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesKorean());
+        font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesGreek());
+        font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesThai());
+        font_ranges_builder.AddRanges(io.Fonts->GetGlyphRangesVietnamese());
+        font_ranges_builder.BuildRanges(&font_ranges);
+        io.Fonts->AddFontFromFileTTF(config.font_path, config.font_size, nullptr, font_ranges.Data);
+    } else {
+        io.Fonts->AddFontDefault();
+    }
 
     size_t data_size;
     unsigned char *raw_data = ReadFromFD(input_fd, &data_size);

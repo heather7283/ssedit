@@ -9,10 +9,11 @@
 #define STRCASEEQ(a, b) (strcasecmp((a), (b)) == 0)
 
 Format MatchFormat(const unsigned char *data, size_t data_size) {
-    static const std::unordered_map<Format, std::vector<unsigned char>> magics = {
-        {  Format::PNG, { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } },
-        { Format::JPEG, { 0xFF, 0xD8, 0xFF                               } },
-        {  Format::JXL, { 0xFF, 0x0A                                     } },
+    static const std::vector<std::pair<Format, std::vector<unsigned char>>> magics = {
+        {  Format::PNG, { 0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A                     } },
+        { Format::JPEG, { 0xFF,0xD8,0xFF                                              } },
+        {  Format::JXL, { 0xFF,0x0A                                                   } },
+        {  Format::JXL, { 0x00,0x00,0x00,0x0C,0x4A,0x58,0x4C,0x20,0x0D,0x0A,0x87,0x0A } },
     };
 
     auto it = std::find_if(magics.begin(), magics.end(), [data, data_size](auto &pair) {

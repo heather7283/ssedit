@@ -404,7 +404,8 @@ int main(int argc, char **argv) {
     bool need_export = false;
 
     Tool active_tool = FREEFORM;
-    float thickness = 2.0f;
+    const float max_thickness = std::min(orig_image->w, orig_image->h) / 2.0f;
+    float thickness = std::min(orig_image->w, orig_image->h) / 100.0f;
     ImVec4 color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
     bool fill = false;
 
@@ -522,7 +523,7 @@ int main(int argc, char **argv) {
 
         ImGui::Text("Thickness");
         ImGui::SetNextItemWidth(-1);
-        ImGui::SliderFloat("##Thickness", &thickness, 1.0f, 30.0f);
+        ImGui::SliderFloat("##Thickness", &thickness, 1.0f, max_thickness);
         if (ImGui::IsItemActive()) {
             canvas_draw_list->AddCircleFilled(image_pos + image_size / 2,
                                               thickness * image_scale / 2,

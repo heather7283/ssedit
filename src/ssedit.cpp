@@ -519,7 +519,7 @@ int main(int argc, char **argv) {
 
         ImGui::Text("Color");
         ImGui::SetNextItemWidth(-1);
-        ImGui::ColorEdit4("##Color", (float *)&color);
+        ImGui::ColorEdit3("##Color", (float *)&color);
 
         ImGui::Text("Thickness");
         ImGui::SetNextItemWidth(-1);

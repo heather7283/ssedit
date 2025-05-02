@@ -451,13 +451,13 @@ int main(int argc, char **argv) {
         ImGui::SetCursorScreenPos(image_pos);
         ImGui::Image((uintptr_t)image_texture, image_size);
 
-        ImDrawList *draw_list = ImGui::GetWindowDrawList();
+        ImDrawList *canvas_draw_list = ImGui::GetWindowDrawList();
 
         for (const auto &shape: shapes) {
-            shape->Draw(draw_list, image_pos, image_scale);
+            shape->Draw(canvas_draw_list, image_pos, image_scale);
         }
         if (drawing_shape) {
-            drawing_shape->Draw(draw_list, image_pos, image_scale);
+            drawing_shape->Draw(canvas_draw_list, image_pos, image_scale);
         }
 
         if (ImGui::IsItemHovered()) {
@@ -523,6 +523,11 @@ int main(int argc, char **argv) {
         ImGui::Text("Thickness");
         ImGui::SetNextItemWidth(-1);
         ImGui::SliderFloat("##Thickness", &thickness, 1.0f, 30.0f);
+        if (ImGui::IsItemActive()) {
+            canvas_draw_list->AddCircleFilled(image_pos + image_size / 2,
+                                              thickness * image_scale / 2,
+                                              IMVEC4_TO_COL32(color));
+        }
 
         ImGui::Text("Tool");
         float available_width = ImGui::GetContentRegionAvail().x;

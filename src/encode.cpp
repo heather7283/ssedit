@@ -12,9 +12,9 @@ typedef unsigned char *(*EncoderFunc)(unsigned char *src_data, size_t src_data_s
                                       uint32_t src_width, uint32_t src_height, size_t *out_size);
 
 static const std::unordered_map<Format, EncoderFunc> encoders = {
-    {  Format::PNG, EncodePNG },
+    {  Format::PNG,  EncodePNG },
     { Format::JPEG, EncodeJPEG },
-    //{  Format::JXL, EncodeJXL },
+    {  Format::JXL,  EncodeJXL },
 };
 
 Image *EncodeImage(Image *src, Format format) {

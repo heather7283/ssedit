@@ -51,7 +51,7 @@ const char *FormatToString(Format format) {
     case Format::PNG:     return "PNG";
     case Format::JPEG:    return "JPEG";
     case Format::JXL:     return "JXL";
-    case Format::RGBA:    return "RGBA";
+    case Format::RGB:    return "RGB";
     case Format::INVALID: return "INVALID";
     default:              return "?????";
     }

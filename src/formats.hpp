@@ -6,7 +6,7 @@ enum class Format {
     PNG,
     JPEG,
     JXL,
-    RGBA,
+    RGB,
     INVALID,
 };
 

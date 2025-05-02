@@ -42,7 +42,7 @@ Image *DecodeImage(const unsigned char *data, size_t data_size) {
         goto err;
     }
 
-    image = new Image(out, w * h * 4, w, h, Format::RGBA);
+    image = new Image(out, w * h * 3, w, h, Format::RGB);
     return image;
 
 err:

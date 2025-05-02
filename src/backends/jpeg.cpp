@@ -11,7 +11,7 @@ unsigned char *DecodeJPEG(const unsigned char *data, size_t data_size,
     tjhandle tj_instance = nullptr;
     unsigned char *out_buf = nullptr;
     int pitch, jpeg_w, jpeg_h, jpeg_subsamp, jpeg_colorspace;
-    const int pixel_format = TJPF_RGBA;
+    const int pixel_format = TJPF_RGB;
 
     LogPrint(INFO, "JPEG decoder: using libturbojpeg");
 
@@ -57,7 +57,7 @@ unsigned char *EncodeJPEG(unsigned char *src_data, size_t src_data_size,
     tjhandle tj_instance = nullptr;
     unsigned char *out_buf = nullptr;
     size_t buf_size = 0;
-    const int pixel_format = TJPF_RGBA;
+    const int pixel_format = TJPF_RGB;
     const int subsampling = TJSAMP_444;
     const int quality = 50;
     const int pixel_size = tjPixelSize[pixel_format];

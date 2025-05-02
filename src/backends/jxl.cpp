@@ -19,7 +19,7 @@ unsigned char *DecodeJXL(const unsigned char *data, size_t data_size,
                          uint32_t *width, uint32_t *height) {
     JxlDecoderPtr dec = nullptr;
     JxlBasicInfo info;
-    JxlPixelFormat format = {4, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
+    JxlPixelFormat format = {3, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
     uint32_t w = 0, h = 0;
     size_t buffer_size = 0;
     unsigned char *buffer = nullptr;
@@ -72,9 +72,9 @@ unsigned char *DecodeJXL(const unsigned char *data, size_t data_size,
                 LogPrint(ERR, "JXL decoder: JxlDecoderImageOutBufferSize failed");
                 goto err;
             }
-            if (buffer_size != w * h * 4) {
+            if (buffer_size != w * h * 3) {
                 LogPrint(ERR, "JXL decoder: Invalid out buffer size %d %d",
-                         buffer_size, w * h * 4);
+                         buffer_size, w * h * 3);
                 goto err;
             }
             buffer = (unsigned char *)malloc(buffer_size);
@@ -117,7 +117,7 @@ unsigned char *EncodeJXL(unsigned char *src_data, size_t src_data_size,
                          uint32_t src_width, uint32_t src_height, size_t *out_size) {
     JxlEncoderPtr enc = nullptr;
     JxlThreadParallelRunnerPtr runner = nullptr;
-    JxlPixelFormat pixel_format = {4, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
+    JxlPixelFormat pixel_format = {3, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
     JxlBasicInfo basic_info;
     JxlColorEncoding color_encoding = {};
     JxlEncoderFrameSettings *frame_settings;
@@ -141,10 +141,10 @@ unsigned char *EncodeJXL(unsigned char *src_data, size_t src_data_size,
     basic_info.ysize = src_height;
     basic_info.bits_per_sample = 8;
     basic_info.exponent_bits_per_sample = 0;
-    basic_info.alpha_bits = 8;
+    basic_info.alpha_bits = 0;
     basic_info.num_color_channels = 3;
-    basic_info.num_extra_channels = 1;
-    basic_info.uses_original_profile = JXL_FALSE;
+    basic_info.num_extra_channels = 0;
+    basic_info.uses_original_profile = JXL_TRUE;
     if (JxlEncoderSetBasicInfo(enc.get(), &basic_info) != JXL_ENC_SUCCESS) {
         LogPrint(ERR, "JXL encoder: JxlEncoderSetBasicInfo failed");
         goto err;

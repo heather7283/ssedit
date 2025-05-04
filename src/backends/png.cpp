@@ -24,7 +24,7 @@ unsigned char *DecodePNG(const unsigned char *data, size_t data_size,
     }
 
     size_t out_size;
-    ret = spng_decoded_image_size(ctx, SPNG_FMT_RGB8, &out_size);
+    ret = spng_decoded_image_size(ctx, SPNG_FMT_RGBA8, &out_size);
     if (ret != 0) {
         goto err;
     }
@@ -39,7 +39,7 @@ unsigned char *DecodePNG(const unsigned char *data, size_t data_size,
     *height = ihdr.height;
 
     out = (unsigned char *)malloc(out_size);
-    ret = spng_decode_image(ctx, out, out_size, SPNG_FMT_RGB8, 0);
+    ret = spng_decode_image(ctx, out, out_size, SPNG_FMT_RGBA8, 0);
     if (ret != 0) {
         goto err;
     }
@@ -78,7 +78,7 @@ unsigned char *EncodePNG(unsigned char *src_data, size_t src_data_size,
         .width = src_width,
         .height = src_height,
         .bit_depth = 8,
-        .color_type = SPNG_COLOR_TYPE_TRUECOLOR,
+        .color_type = SPNG_COLOR_TYPE_TRUECOLOR_ALPHA,
         .compression_method = 0,
         .filter_method = 0,
         .interlace_method = 0,

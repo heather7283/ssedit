@@ -118,16 +118,16 @@ Image *GetModifiedPixels(Image *orig_image) {
     GLuint color_tex;
     glGenTextures(1, &color_tex);
     glBindTexture(GL_TEXTURE_2D, color_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, orig_image->w, orig_image->h,
-                 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, orig_image->w, orig_image->h,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_tex, 0);
 
     GLuint image_tex;
     glGenTextures(1, &image_tex);
     glBindTexture(GL_TEXTURE_2D, image_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, orig_image->w, orig_image->h,
-                 0, GL_RGB, GL_UNSIGNED_BYTE, orig_image->data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, orig_image->w, orig_image->h,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, orig_image->data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -161,16 +161,16 @@ Image *GetModifiedPixels(Image *orig_image) {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     pixels_buf = (unsigned char *)malloc(orig_image->data_size);
-    glReadPixels(0, 0, orig_image->w, orig_image->h, GL_RGB, GL_UNSIGNED_BYTE, pixels_buf);
+    glReadPixels(0, 0, orig_image->w, orig_image->h, GL_RGBA, GL_UNSIGNED_BYTE, pixels_buf);
     for (uint32_t y = 0; y < orig_image->h / 2; ++y) {
-        int top_index = y * orig_image->w * 3;
-        int bottom_index = (orig_image->h - 1 - y) * orig_image->w * 3;
-        for (uint32_t x = 0; x < orig_image->w * 3; ++x) {
+        int top_index = y * orig_image->w * 4;
+        int bottom_index = (orig_image->h - 1 - y) * orig_image->w * 4;
+        for (uint32_t x = 0; x < orig_image->w * 4; ++x) {
             std::swap(pixels_buf[top_index + x], pixels_buf[bottom_index + x]);
         }
     }
     raw_image = new Image(pixels_buf, orig_image->data_size,
-                          orig_image->w, orig_image->h, Format::RGB);
+                          orig_image->w, orig_image->h, Format::RGBA);
 
     glDeleteTextures(1, &image_tex);
     glDeleteTextures(1, &color_tex);
@@ -395,8 +395,8 @@ int main(int argc, char **argv) {
     GLuint image_texture;
     glGenTextures(1, &image_texture);
     glBindTexture(GL_TEXTURE_2D, image_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, orig_image->w, orig_image->h,
-                 0, GL_RGB, GL_UNSIGNED_BYTE, orig_image->data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, orig_image->w, orig_image->h,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, orig_image->data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 

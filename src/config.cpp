@@ -201,6 +201,8 @@ static int ConfigHandler(void *data, const char *section, const char *name, cons
         StringToFloat(value, &config.font_size);
     } else if (MATCH("Main", "FontFile")) {
         config.font_path = strdup(value);
+    } else if (MATCH("Main", "InitialThickness")) {
+        StringToFloat(value, &config.initial_thickness);
     } else {
         LogPrint(WARN, "Config: unknown option %s in section %s", name, section);
     }

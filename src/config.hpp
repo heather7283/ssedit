@@ -8,6 +8,8 @@
 struct Config {
     float font_size = 18.0f;
     const char *font_path = nullptr;
+    // absolute value if > 0, relative to image size if < 0
+    float initial_thickness = 0.10f;
 };
 
 extern struct Config config;

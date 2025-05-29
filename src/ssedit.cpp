@@ -405,7 +405,12 @@ int main(int argc, char **argv) {
 
     Tool active_tool = FREEFORM;
     const float max_thickness = std::min(orig_image->w, orig_image->h) / 2.0f;
-    float thickness = std::min(orig_image->w, orig_image->h) / 100.0f;
+    float thickness;
+    if (config.initial_thickness < 1.f) {
+        thickness = std::min(orig_image->w, orig_image->h) * config.initial_thickness;
+    } else {
+        thickness = config.initial_thickness;
+    }
     ImVec4 color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
     bool fill = false;
 

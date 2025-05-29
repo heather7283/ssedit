@@ -1,3 +1,6 @@
+> [!WARNING]
+> This project is kinda ass. Seriously, I really don't like how it turned out
+> so I'm probably gonna rewrite it eventually. Don't recommend anyone to use it.
 # ssedit
 ssedit is a program for quick screenshot editing.
 It uses [Dear ImGui] for user interface and glfw/opengl for rendering.
